@@ -48,7 +48,7 @@ class _FarmerDashboardScreenUpdateState
     _fetchData();
 
     // Set timer untuk refresh data
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _fetchData());
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _fetchData());
 
     // Nonaktifkan notifikasi untuk menghindari error 404
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,13 +70,6 @@ class _FarmerDashboardScreenUpdateState
     _sensorBloc.close();
     super.dispose();
   }
-
-  // 4. Hapus semua fungsi fetch data yang lama
-  // - fetchLatestSensorData() (DIHAPUS)
-  // - fetchRealtimeSensorData() (DIHAPUS)
-  // - setDeviceStatus() (DIHAPUS, pindahkan ke DeviceRepository)
-  // - _getTemperatureStatus() (DIHAPUS, logika baru)
-  // - _getHumidityStatus() (DIHAPUS, logika baru)
 
   void _onItemTapped(int index) {
     setState(() {
@@ -222,7 +215,7 @@ class _FarmerDashboardScreenUpdateState
                               ),
                               const SizedBox(height: 16),
 
-                              // Card 2: Status & Konfigurasi
+                              // Card 2: Status & Konfigurasilib/presentation/pages/device/device_screen_update.dart
                               GlassCard(
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),
@@ -268,7 +261,6 @@ class _FarmerDashboardScreenUpdateState
                             ),
                           );
                         }
-
                         // State Awal
                         return const SizedBox();
                       },
@@ -355,15 +347,4 @@ class _FarmerDashboardScreenUpdateState
       ),
     );
   }
-
-  // 8. HAPUS SEMUA WIDGET HELPER LAMA
-  // - _formatTime() (DIHAPUS)
-  // - _buildBigSensorCard() (DIHAPUS)
-  // - _buildTripleSensorCard() (DIHAPUS)
-  // - _buildSensorRow() (DIHAPUS)
 }
-
-// 9. HAPUS SEMUA CLASS HELPER LAMA DI BAWAH INI
-// - class SensorRealtimeData (DIHAPUS)
-// - double? _parseToDouble(dynamic value) (DIHAPUS)
-// - class _SensorValueColumn (DIHAPUS)

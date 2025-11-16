@@ -67,12 +67,6 @@ class MyApp extends StatelessWidget {
             secureStorage: context.read<FlutterSecureStorage>(),
           ),
         ),
-        RepositoryProvider<LocationRepository>(
-          create: (context) => LocationRepository(
-            context.read<Dio>(),
-            context.read<FlutterSecureStorage>(),
-          ),
-        ),
         RepositoryProvider<NotificationRepository>(
           create: (context) => NotificationRepository(
             context.read<Dio>(),

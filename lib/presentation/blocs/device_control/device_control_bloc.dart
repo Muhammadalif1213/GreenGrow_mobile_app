@@ -1,113 +1,118 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'device_control_event.dart';
-import 'device_control_state.dart';
+import 'dart:async';
+import 'package:bloc/bloc.dart';
+import '../../../data/models/sensor_data_model.dart';
 import '../../../data/repositories/device_control_repository.dart';
-import 'package:dio/dio.dart';
 
-class DeviceControlBloc extends Bloc<DeviceControlEvent, DeviceControlState> {
-  final DeviceControlRepository repository;
+part 'device_control_event.dart';
+part 'device_control_state.dart';
 
-  DeviceControlBloc(this.repository)
-      : super(DeviceControlStatus(
-          blowerOn: false,
-          sprayerOn: false,
-          isAutomationEnabled: false,
-        )) {
-    on<DeviceControlFetchStatus>((event, emit) async {
-      emit(DeviceControlLoading('all'));
-      try {
-        final res = await repository.fetchStatus();
-        final data = res['data'] ?? {};
-        emit(DeviceControlStatus(
-          blowerOn:
-              (data['blower_status'] ?? '').toString().toUpperCase() == 'ON',
-          sprayerOn:
-              (data['sprayer_status'] ?? '').toString().toUpperCase() == 'ON',
-          isAutomationEnabled: data['is_automation_enabled'] ?? false,
-        ));
-      } catch (e) {
-        emit(DeviceControlError('Gagal mengambil status perangkat: $e'));
-      }
-    });
+class DeviceControlBloc
+    extends Bloc<DeviceControlEvent, DeviceControlState> {
+  final DeviceControlRepository _repository;
 
-    on<DeviceControlRequested>((event, emit) async {
-      final currentState = state;
-      bool blowerOn = false;
-      bool sprayerOn = false;
-      bool isAutomationEnabled = false;
-      if (currentState is DeviceControlStatus) {
-        blowerOn = currentState.blowerOn;
-        sprayerOn = currentState.sprayerOn;
-        isAutomationEnabled = currentState.isAutomationEnabled;
-      }
-      emit(DeviceControlLoading(event.deviceType));
-      try {
-        // Fetch status dulu
-        final statusRes = await repository.fetchStatus();
-        final statusData = statusRes['data'] ?? {};
-        isAutomationEnabled = statusData['is_automation_enabled'] ?? false;
-        blowerOn =
-            (statusData['blower_status'] ?? '').toString().toUpperCase() ==
-                'ON';
-        sprayerOn =
-            (statusData['sprayer_status'] ?? '').toString().toUpperCase() ==
-                'ON';
-        if (isAutomationEnabled) {
-          emit(DeviceControlStatus(
-            blowerOn: blowerOn,
-            sprayerOn: sprayerOn,
-            isAutomationEnabled: isAutomationEnabled,
-            message:
-                'Matikan mode automation untuk kontrol manual ${event.deviceType}.',
-            success: false,
-          ));
-          return;
-        }
-        final res = await repository.controlDevice(
-          deviceType: event.deviceType,
-          action: event.action,
-        );
-        final msg = res['message'] ?? 'Berhasil mengubah status.';
-        final success = res['success'] ?? false;
-        // Tambahkan delay sebelum fetch status ulang
-        await Future.delayed(const Duration(milliseconds: 500));
-        // Fetch status lagi setelah kontrol
-        final afterRes = await repository.fetchStatus();
-        final afterData = afterRes['data'] ?? {};
-        blowerOn =
-            (afterData['blower_status'] ?? '').toString().toUpperCase() == 'ON';
-        sprayerOn =
-            (afterData['sprayer_status'] ?? '').toString().toUpperCase() ==
-                'ON';
-        isAutomationEnabled = afterData['is_automation_enabled'] ?? false;
-        emit(DeviceControlStatus(
-          blowerOn: blowerOn,
-          sprayerOn: sprayerOn,
-          isAutomationEnabled: isAutomationEnabled,
-          lastChangedDevice: event.deviceType,
-          lastChangedValue: event.action == 'ON',
-          message: msg,
-          success: success,
-        ));
-      } catch (e) {
-        String errorMsg = 'Gagal mengubah status: ';
-        if (e is DioError) {
-          if (e.response != null && e.response?.data != null) {
-            errorMsg +=
-                e.response?.data['message'] ?? (e.message ?? 'Unknown error');
-          } else {
-            errorMsg += e.message ?? 'Unknown error';
-          }
-        } else {
-          errorMsg += e.toString();
-        }
-        emit(DeviceControlError(errorMsg));
-        emit(DeviceControlStatus(
-          blowerOn: blowerOn,
-          sprayerOn: sprayerOn,
-          isAutomationEnabled: isAutomationEnabled,
-        ));
-      }
-    });
+  DeviceControlBloc(this._repository) : super(DeviceControlInitial()) {
+    // Daftarkan semua event handler
+    on<DeviceControlFetchStatus>(_onFetchStatus);
+    on<DeviceControlRequested>(_onControlRequested);
+    on<DeviceControlAutomationToggled>(_onAutomationToggled);
+    on<DeviceControlBlowerToggled>(_onBlowerToggled);
+  }
+
+  Future<void> _onBlowerToggled(
+    DeviceControlBlowerToggled event,
+    Emitter<DeviceControlState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is DeviceControlStatus) {
+      // Tampilkan loading di UI, tapi tetap simpan data lama
+      emit(currentState.copyWith(message: 'Memperbarui blower...'));
+    }
+
+    try {
+      // Panggil fungsi repository BARU kita
+      await _repository.setBlowerStatus(newStatus: event.isEnabled);
+
+      // Setelah berhasil, panggil API status lagi untuk data terupdate
+      add(DeviceControlFetchStatus());
+      
+    } catch (e) {
+      emit(DeviceControlError(e.toString()));
+    }
+  }
+
+
+  Future<void> _onAutomationToggled(
+    DeviceControlAutomationToggled event,
+    Emitter<DeviceControlState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is DeviceControlStatus) {
+      // Tampilkan loading di UI, tapi tetap simpan data lama
+      emit(currentState.copyWith(message: 'Memperbarui automation...'));
+    }
+
+    try {
+      // Panggil fungsi repository BARU kita
+      await _repository.setAutomationStatus(newStatus: event.isEnabled);
+
+      // Setelah berhasil, panggil API status lagi untuk data terupdate
+      add(DeviceControlFetchStatus());
+      
+    } catch (e) {
+      emit(DeviceControlError(e.toString()));
+    }
+  }
+
+  /// Handler untuk mengambil status konfigurasi terbaru
+  Future<void> _onFetchStatus(
+    DeviceControlFetchStatus event,
+    Emitter<DeviceControlState> emit,
+  ) async {
+    // Hanya emit loading jika state saat ini bukan status (saat pertama kali load)
+    if (state is! DeviceControlStatus) {
+      emit(DeviceControlLoading());
+    }
+    
+    try {
+      // Panggil fungsi repository baru kita
+      final ConfigModel config = await _repository.getDeviceStatus();
+
+      // Emit state baru dengan data dari ConfigModel
+      emit(DeviceControlStatus(
+        blowerOn: config.blower,
+        isAutomationEnabled: config.automation,
+        maxTemp: config.maxTemp,
+      ));
+    } catch (e) {
+      emit(DeviceControlError(e.toString()));
+    }
+  }
+
+  /// Handler untuk mengirim perintah ON/OFF
+  Future<void> _onControlRequested(
+    DeviceControlRequested event,
+    Emitter<DeviceControlState> emit,
+  ) async {
+    // Ambil state saat ini untuk tahu status terakhir
+    final currentState = state;
+    if (currentState is DeviceControlStatus) {
+      // Tampilkan loading di UI, tapi tetap simpan data lama
+      emit(currentState.copyWith(message: 'Mengirim perintah...'));
+    }
+
+    try {
+      // Asumsi: Repository Anda punya fungsi setDeviceStatus
+      // Sesuaikan nama fungsi ini jika berbeda di repository Anda
+      await _repository.setDeviceStatus(
+        device: event.deviceType,
+        status: event.action,
+      );
+
+      // Setelah berhasil, panggil API status lagi untuk data terupdate
+      add(DeviceControlFetchStatus());
+      
+    } catch (e) {
+      emit(DeviceControlError(e.toString()));
+    }
   }
 }

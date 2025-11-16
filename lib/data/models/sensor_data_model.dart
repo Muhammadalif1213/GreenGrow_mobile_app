@@ -1,29 +1,3 @@
-// class SensorDataModel {
-//   final int id;
-//   final double temp;
-//   final double humidity;
-//   final String status;
-//   final DateTime recordedAt;
-
-//   SensorDataModel({
-//     required this.id,
-//     required this.temp,
-//     required this.humidity,
-//     required this.status,
-//     required this.recordedAt,
-//   });
-
-//   factory SensorDataModel.fromJson(Map<String, dynamic> json) {
-//     return SensorDataModel(
-//       id: json['id'],
-//       temp: double.parse(json['temperature'].toString()),
-//       humidity: double.parse(json['humidity'].toString()),
-//       status: json['status'],
-//       recordedAt: DateTime.parse(json['recorded_at']),
-//     );
-//   }
-// } 
-
 class ConfigModel {
   final bool automation;
   final bool blower;

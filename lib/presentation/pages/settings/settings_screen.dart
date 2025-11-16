@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen_update.dart';
+import 'package:greengrow_app/presentation/pages/device/device_screen_update.dart';
 import '../dashboard/farmer_dashboard_screen.dart';
 import '../device/device_screen.dart';
 import '../profile/profile_farmer_screen.dart';
@@ -289,7 +291,7 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const FarmerDashboardScreen(),
+                    builder: (context) => const FarmerDashboardScreenUpdate(),
                   ),
                 );
                 break;
@@ -297,7 +299,7 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const DeviceScreen(),
+                    builder: (context) => const DeviceScreenUpdate(),
                   ),
                 );
                 break;

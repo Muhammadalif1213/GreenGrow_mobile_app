@@ -2,9 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:greengrow_app/core/config/api_config.dart';
 import '../models/sensor_data_model.dart';
-import '../local/sensor_local_db.dart';
-import '../local/sync_queue_db.dart';
-import '../../domain/models/sensor_trend.dart';
 
 class SensorRepository {
   final Dio dio;
