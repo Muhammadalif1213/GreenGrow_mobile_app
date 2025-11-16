@@ -194,14 +194,14 @@ class _SensorHistoryWidgetState extends State<SensorHistoryWidget>
                                             sideTitles: SideTitles(
                                               showTitles: true,
                                               getTitlesWidget: (value, meta) {
-                                                final idx = value.toInt();
-                                                if (idx >= 0 && idx < _data.length) {
-                                                  final dt = _data[idx].recordedAt;
-                                                  return Text(
-                                                    DateFormat('HH:mm').format(dt),
-                                                    style: const TextStyle(fontSize: 10),
-                                                  );
-                                                }
+                                                // final idx = value.toInt();
+                                                // if (idx >= 0 && idx < _data.length) {
+                                                //   final dt = _data[idx].recordedAt;
+                                                //   return Text(
+                                                //     DateFormat('HH:mm').format(dt),
+                                                //     style: const TextStyle(fontSize: 10),
+                                                //   );
+                                                // }
                                                 return const SizedBox();
                                               },
                                               interval: (_data.length / 4).ceilToDouble(),
@@ -222,7 +222,7 @@ class _SensorHistoryWidgetState extends State<SensorHistoryWidget>
                                           LineChartBarData(
                                             spots: [
                                               for (int i = 0; i < _data.length; i++)
-                                                FlSpot(i.toDouble(), _data[i].temperature),
+                                                FlSpot(i.toDouble(), _data[i].temp),
                                             ],
                                             isCurved: true,
                                             color: Colors.red,
@@ -231,18 +231,18 @@ class _SensorHistoryWidgetState extends State<SensorHistoryWidget>
                                             dotData: FlDotData(show: false),
                                             belowBarData: BarAreaData(show: false),
                                           ),
-                                          LineChartBarData(
-                                            spots: [
-                                              for (int i = 0; i < _data.length; i++)
-                                                FlSpot(i.toDouble(), _data[i].humidity),
-                                            ],
-                                            isCurved: true,
-                                            color: Colors.blue,
-                                            barWidth: 3,
-                                            isStrokeCapRound: true,
-                                            dotData: FlDotData(show: false),
-                                            belowBarData: BarAreaData(show: false),
-                                          ),
+                                          // LineChartBarData(
+                                          //   spots: [
+                                          //     for (int i = 0; i < _data.length; i++)
+                                          //       FlSpot(i.toDouble(), _data[i].humidity),
+                                          //   ],
+                                          //   isCurved: true,
+                                          //   color: Colors.blue,
+                                          //   barWidth: 3,
+                                          //   isStrokeCapRound: true,
+                                          //   dotData: FlDotData(show: false),
+                                          //   belowBarData: BarAreaData(show: false),
+                                          // ),
                                         ],
                                       ),
                                     ),
@@ -283,8 +283,8 @@ class _SensorHistoryWidgetState extends State<SensorHistoryWidget>
                               itemBuilder: (context, i) {
                                 final d = _data[i];
                                 return ListTile(
-                                  title: Text('Suhu: ${d.temperature}, Humidity: ${d.humidity}'),
-                                  subtitle: Text('Waktu: ${d.recordedAt}'),
+                                  // title: Text('Suhu: ${d.temp}, Humidity: ${d.humidity}'),
+                                  // subtitle: Text('Waktu: ${d.recordedAt}'),
                                 );
                               },
                             ),

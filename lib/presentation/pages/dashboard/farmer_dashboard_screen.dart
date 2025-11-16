@@ -1,8 +1,5 @@
 import 'dart:convert';
-import 'package:greengrow_app/presentation/pages/activity/activity_history_screen.dart';
-import 'package:greengrow_app/presentation/pages/activity/upload_activity_screen.dart';
 import 'package:greengrow_app/presentation/pages/device/device_screen.dart';
-import 'package:greengrow_app/presentation/pages/map/greenhouse_map_screen.dart';
 import 'package:greengrow_app/presentation/pages/profile/profile_farmer_screen.dart';
 import 'package:greengrow_app/presentation/widgets/notification_badge.dart';
 import 'package:http/http.dart' as http;

@@ -11,14 +11,9 @@ import 'package:greengrow_app/data/repositories/auth_repository_impl.dart';
 import 'package:greengrow_app/data/repositories/location_repository.dart';
 import 'package:greengrow_app/data/repositories/notification_repository.dart';
 import 'package:greengrow_app/presentation/blocs/auth/auth_bloc.dart';
-import 'package:greengrow_app/presentation/blocs/location/location_bloc.dart';
 import 'package:greengrow_app/presentation/pages/auth/login_screen.dart';
 import 'package:greengrow_app/presentation/pages/auth/register_screen.dart';
 import 'package:greengrow_app/presentation/pages/admin/admin_dashboard_screen.dart';
-import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen.dart';
-import 'package:greengrow_app/presentation/pages/map/greenhouse_map_screen.dart';
-import 'package:greengrow_app/presentation/pages/activity/activity_history_screen.dart';
-import 'package:greengrow_app/presentation/pages/activity/upload_activity_screen.dart';
 import 'package:greengrow_app/presentation/pages/notification/notification_screen.dart';
 import 'package:greengrow_app/presentation/pages/advance/splash_screen.dart';
 import 'package:greengrow_app/presentation/pages/advance/welcome.dart';
@@ -92,11 +87,6 @@ class MyApp extends StatelessWidget {
               authRepository: context.read<AuthRepository>(),
             ),
           ),
-          BlocProvider<LocationBloc>(
-            create: (context) => LocationBloc(
-              context.read<LocationRepository>(),
-            ),
-          ),
         ],
         child: MaterialApp(
           title: 'GreenGrow',
@@ -115,15 +105,6 @@ class MyApp extends StatelessWidget {
             '/register': (context) => const RegisterScreen(),
             '/admin-dashboard': (context) => const AdminDashboardScreen(),
             '/farmer-dashboard': (context) => const FarmerDashboardScreenUpdate(),
-            '/greenhouse-map': (context) => const GreenhouseMapScreen(),
-            '/activity-history': (context) => const ActivityHistoryScreen(
-                  greenhouseId: 1, // Ganti dengan ID greenhouse yang sesuai
-                ),
-            '/upload-activity': (context) {
-              final userIdStr = Provider.of<AuthProvider>(context, listen: false).userId;
-              final userId = userIdStr != null ? int.tryParse(userIdStr) ?? 0 : 0;
-              return UploadActivityScreen(greenhouseId: 1, userId: userId);
-            },
             '/notifications': (context) => const NotificationScreen(),
           },
         ),

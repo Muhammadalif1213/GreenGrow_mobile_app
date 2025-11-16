@@ -1,18 +1,21 @@
-import 'dart:convert';
-import 'package:greengrow_app/presentation/pages/activity/activity_history_screen.dart';
-import 'package:greengrow_app/presentation/pages/activity/upload_activity_screen.dart';
-import 'package:greengrow_app/presentation/pages/device/device_screen.dart';
+import 'dart:async'; // Diperlukan untuk Timer
+import 'dart:ui';
+import 'package:dio/dio.dart'; // Diperlukan untuk Repository
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Diperlukan untuk Repository
+import 'package:flutter_bloc/flutter_bloc.dart'; // Diperlukan untuk BLoC
+import 'package:greengrow_app/data/repositories/sensor_repository.dart'; // Import Repository
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_bloc.dart'; // Import BLoC
+import 'package:greengrow_app/data/models/sensor_data_model.dart'; // Import Model
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_event.dart';
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_state.dart';
 import 'package:greengrow_app/presentation/pages/device/device_screen_update.dart';
-import 'package:greengrow_app/presentation/pages/map/greenhouse_map_screen.dart';
 import 'package:greengrow_app/presentation/pages/profile/profile_farmer_screen.dart';
 import 'package:greengrow_app/presentation/widgets/notification_badge.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/notification_provider.dart';
+// import '../../../core/providers/auth_provider.dart'; // Tidak diperlukan lagi di file ini
+import '../../../core/providers/notification_provider.dart'; // Masih ada, tapi dinonaktifkan
 import '../settings/settings_screen.dart';
-import 'dart:ui';
 import '../../widgets/glass_card.dart';
 
 class FarmerDashboardScreenUpdate extends StatefulWidget {
@@ -26,123 +29,54 @@ class FarmerDashboardScreenUpdate extends StatefulWidget {
 class _FarmerDashboardScreenUpdateState
     extends State<FarmerDashboardScreenUpdate> {
   int _selectedIndex = 0;
-  bool isLoading = true;
-  bool isAutomationOn = false;
-  bool isAutomationLoading = false;
-  String blowerStatus = 'OFF';
-  String sprayerStatus = 'OFF';
-  double temperature = 0.0;
-  double humidity = 0.0;
-  String sensorStatus = '-';
-  // Ganti dengan alamat backend kamu
-  final String baseUrl = 'http://10.0.2.2:3000';
 
-  SensorRealtimeData? previousSensorData;
-  SensorRealtimeData? currentSensorData;
-  bool isRealtimeLoading = true;
-  String realtimeError = '';
+  // 1. Logika BLoC dan Timer (menggantikan state lama)
+  late final SensorBloc _sensorBloc; // <-- Variabel 'late' Anda
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Load unread notification count when dashboard is opened
+
+    // ==========================================================
+    // PASTIKAN BARIS INI ADA, TIDAK DIKOMENTARI, DAN BENAR
+    _sensorBloc =
+        SensorBloc(SensorRepository(Dio(), const FlutterSecureStorage()));
+    // ==========================================================
+
+    // Panggil event BLoC
+    _fetchData();
+
+    // Set timer untuk refresh data
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _fetchData());
+
+    // Nonaktifkan notifikasi untuk menghindari error 404
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NotificationProvider>(context, listen: false)
-          .loadUnreadCount();
+      // Provider.of<NotificationProvider>(context, listen: false)
+      //     .loadUnreadCount();
     });
-    fetchLatestSensorData();
-    fetchRealtimeSensorData();
   }
 
-  Future<void> fetchLatestSensorData() async {
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final token = authProvider.token;
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/sensors/latest'),
-        headers: token != null ? {'Authorization': 'Bearer $token'} : null,
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          temperature = data['temperature']?.toDouble() ?? 0.0;
-          humidity = data['humidity']?.toDouble() ?? 0.0;
-          sensorStatus = data['status'] ?? '-';
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-          // Jika gagal, coba ambil status dari currentSensorData
-          if (currentSensorData != null) {
-            sensorStatus =
-                'Suhu:  ${currentSensorData?.temperature?.toStringAsFixed(1) ?? '-'}°C, Kelembapan:  ${currentSensorData?.humidity?.toStringAsFixed(1) ?? '-'}%';
-          } else {
-            sensorStatus =
-                'Gagal mengambil data sensor (${response.statusCode})';
-          }
-        });
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        // Jika error, coba ambil status dari currentSensorData
-        if (currentSensorData != null) {
-          sensorStatus =
-              'Suhu:  ${currentSensorData?.temperature?.toStringAsFixed(1) ?? '-'}°C, Kelembapan:  ${currentSensorData?.humidity?.toStringAsFixed(1) ?? '-'}%';
-        } else {
-          sensorStatus = 'Gagal mengambil data sensor (error: $e)';
-        }
-      });
-    }
+  // Fungsi untuk memanggil BLoC
+  void _fetchData() {
+    // Memanggil event BLoC yang sudah kita buat
+    _sensorBloc.add(FetchLatestSensorData());
   }
 
-  Future<void> fetchRealtimeSensorData() async {
-    setState(() {
-      isRealtimeLoading = true;
-      realtimeError = '';
-    });
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final token = authProvider.token;
-      final response = await http.get(
-        Uri.parse('$baseUrl/api/sensors/realtime'),
-        headers: token != null ? {'Authorization': 'Bearer $token'} : null,
-      );
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final Map<String, dynamic>? d = data['data'];
-        setState(() {
-          previousSensorData = SensorRealtimeData.fromJson(d?['previous']);
-          currentSensorData = SensorRealtimeData.fromJson(d?['current']);
-          isRealtimeLoading = false;
-        });
-      } else {
-        setState(() {
-          isRealtimeLoading = false;
-          realtimeError =
-              'Gagal mengambil data realtime (${response.statusCode})';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        isRealtimeLoading = false;
-        realtimeError = 'Gagal mengambil data realtime (error: $e)';
-      });
-    }
+  @override
+  void dispose() {
+    // 3. Hapus BLoC dan Timer
+    _timer?.cancel();
+    _sensorBloc.close();
+    super.dispose();
   }
 
-  Future<void> setDeviceStatus({String? blower, String? sprayer}) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/api/automation/device'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        if (blower != null) 'blower_status': blower,
-        if (sprayer != null) 'sprayer_status': sprayer,
-      }),
-    );
-    if (response.statusCode == 200) {}
-  }
+  // 4. Hapus semua fungsi fetch data yang lama
+  // - fetchLatestSensorData() (DIHAPUS)
+  // - fetchRealtimeSensorData() (DIHAPUS)
+  // - setDeviceStatus() (DIHAPUS, pindahkan ke DeviceRepository)
+  // - _getTemperatureStatus() (DIHAPUS, logika baru)
+  // - _getHumidityStatus() (DIHAPUS, logika baru)
 
   void _onItemTapped(int index) {
     setState(() {
@@ -151,13 +85,12 @@ class _FarmerDashboardScreenUpdateState
 
     switch (index) {
       case 0:
-        // Home - already on dashboard, do nothing
         break;
       case 1:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DeviceScreenUpdate(),
+            builder: (context) => const DeviceScreenUpdate(),
           ),
         );
         break;
@@ -165,32 +98,15 @@ class _FarmerDashboardScreenUpdateState
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => SettingsScreen(),
+            builder: (context) => const SettingsScreen(),
           ),
         );
         break;
     }
   }
 
-  // Fungsi untuk menentukan status suhu
-  String _getTemperatureStatus(double? temp) {
-    if (temp == null) return '-';
-    if (temp >= 28.0) return 'Terlalu Panas';
-    if (temp <= 20.0) return 'Terlalu Dingin';
-    return 'Normal';
-  }
-
-  // Fungsi untuk menentukan status kelembapan
-  String _getHumidityStatus(double? hum) {
-    if (hum == null) return '-';
-    if (hum >= 80.0) return 'Terlalu Lembap';
-    if (hum <= 50.0) return 'Terlalu Kering';
-    return 'Normal';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -234,79 +150,138 @@ class _FarmerDashboardScreenUpdateState
             ),
           ),
           // Main content
-
           SafeArea(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await fetchLatestSensorData();
-                      await fetchRealtimeSensorData();
-                    },
-                    child: ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        const Center(
-                            child: Text(
-                          'INFORMATION',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold),
-                        )),
-                        const SizedBox(height: 16),
-                        // Card Suhu & Kelembapan Gabung (glass)
-                        GlassCard(
-                          child: SensorCombinedCard(
-                            previousTemp: previousSensorData?.temperature,
-                            currentTemp: currentSensorData?.temperature,
-                            previousHum: previousSensorData?.humidity,
-                            currentHum: currentSensorData?.humidity,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Real-time Sensor Data Section (glass)
-                        GlassCard(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Center(
-                                  child: const Text(
-                                    'Grafik Suhu Mingguan',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.white),
+            // 5. Bungkus ListView dengan BlocProvider
+            child: BlocProvider.value(
+              value: _sensorBloc,
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  _fetchData();
+                },
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const Center(
+                        child: Text(
+                      'INFORMATION',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold),
+                    )),
+                    const SizedBox(height: 16),
+
+                    // 6. Gunakan BlocBuilder untuk menampilkan data
+                    BlocBuilder<SensorBloc, SensorState>(
+                      builder: (context, state) {
+                        // --- Saat Loading ---
+                        if (state is SensorLoading) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(32.0),
+                              child: CircularProgressIndicator(
+                                  color: Colors.white),
+                            ),
+                          );
+                        }
+
+                        // --- Saat Sukses ---
+                        if (state is SensorLoaded) {
+                          final data = state.sensorData; // Data baru kita
+
+                          // Kita buat ulang UI-nya agar mirip
+                          return Column(
+                            children: [
+                              // Card 1: Suhu & Kelembapan
+                              GlassCard(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      _buildSensorInfoColumn(
+                                        'Suhu',
+                                        '${data.temp.toStringAsFixed(1)}°C',
+                                        Icons.thermostat,
+                                      ),
+                                      // Pemisah
+                                      Container(
+                                        width: 1,
+                                        height: 60,
+                                        color: Colors.white.withOpacity(0.3),
+                                      ),
+                                      _buildSensorInfoColumn(
+                                        'Kelembapan',
+                                        '${data.humbd.toStringAsFixed(1)}%',
+                                        Icons.water_drop_outlined,
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const Divider(),
-                                const SizedBox(height: 8),
-                                if (isRealtimeLoading)
-                                  const Center(
-                                      child: CircularProgressIndicator())
-                                else if (realtimeError.isNotEmpty)
-                                  Text(realtimeError,
-                                      style: const TextStyle(color: Colors.red))
-                                else ...[
-                                  _buildSensorRow(
-                                      'Previous', previousSensorData),
-                                  const Divider(),
-                                  _buildSensorRow('Current', currentSensorData),
-                                  const Divider(),
-                                ],
-                              ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Card 2: Status & Konfigurasi
+                              GlassCard(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Center(
+                                        child: Text(
+                                          'Status Konfigurasi',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                      const Divider(color: Colors.white54),
+                                      _buildConfigRow(
+                                          'Mode Otomatis',
+                                          data.config.automation
+                                              ? 'AKTIF'
+                                              : 'MATI'),
+                                      _buildConfigRow('Status Blower',
+                                          data.config.blower ? 'ON' : 'OFF'),
+                                      _buildConfigRow('Batas Suhu',
+                                          '${data.config.maxTemp}°C'),
+                                      _buildConfigRow('Heat Index',
+                                          '${data.hic.toStringAsFixed(1)}°C'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        // --- Saat Error ---
+                        if (state is SensorError) {
+                          return Center(
+                            child: Text(
+                              'Gagal memuat data: ${state.message}',
+                              style: const TextStyle(color: Colors.red),
                             ),
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+
+                        // State Awal
+                        return const SizedBox();
+                      },
                     ),
-                  ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
       bottomNavigationBar: Container(
+        // ... (BottomNavigationBar Anda sudah benar) ...
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -346,217 +321,49 @@ class _FarmerDashboardScreenUpdateState
     );
   }
 
-  String _formatTime(String? isoString) {
-    if (isoString == null) return '-';
-    try {
-      final dt = DateTime.parse(isoString).toLocal();
-      return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return '-';
-    }
-  }
-
-  Widget _buildBigSensorCard({
-    required String label,
-    double? value,
-    required String unit,
-    String? time,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Card(
-      color: color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 32, color: Colors.black54),
-                const SizedBox(width: 12),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: Text(
-                value != null ? value.toStringAsFixed(1) : '-',
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            Center(
-              child: Text(
-                unit,
-                style: const TextStyle(
-                  fontSize: 24,
-                  color: Colors.black54,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                'Waktu:  0${_formatTime(time)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  fontFamily: 'Courier',
-                  letterSpacing: 2,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTripleSensorCard({
-    required String label,
-    double? previous,
-    double? current,
-    double? forecast,
-    required String unit,
-    required Color color,
-  }) {
-    return Card(
-      color: color,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _SensorValueColumn(
-                  value: previous,
-                  unit: unit,
-                  label: 'Sebelumnya',
-                ),
-                _SensorValueColumn(
-                  value: current,
-                  unit: unit,
-                  label: 'Saat Ini',
-                ),
-                _SensorValueColumn(
-                  value: forecast,
-                  unit: unit,
-                  label: 'Prediksi',
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSensorRow(String label, SensorRealtimeData? data) {
-    if (data == null || (data.temperature == null && data.humidity == null)) {
-      return Text('$label: Belum ada data',
-          style: const TextStyle(color: Colors.white));
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('$label:',
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, color: Colors.white)),
-        Text(
-          'Suhu: ${data.temperature?.toStringAsFixed(1) ?? '-'}°C\nKelembapan: ${data.humidity?.toStringAsFixed(1) ?? '-'}%\nWaktu: ${data.recordedAt ?? '-'}',
-          style: const TextStyle(color: Colors.white70),
-        ),
-      ],
-    );
-  }
-}
-
-class SensorRealtimeData {
-  final double? temperature;
-  final double? humidity;
-  final String? recordedAt;
-
-  SensorRealtimeData({this.temperature, this.humidity, this.recordedAt});
-
-  factory SensorRealtimeData.fromJson(Map<String, dynamic>? json) {
-    if (json == null) return SensorRealtimeData();
-    return SensorRealtimeData(
-      temperature: _parseToDouble(json['temperature']),
-      humidity: _parseToDouble(json['humidity']),
-      recordedAt: json['recorded_at'] as String?,
-    );
-  }
-}
-
-// Helper untuk parsing string/num ke double
-double? _parseToDouble(dynamic value) {
-  if (value == null) return null;
-  if (value is num) return value.toDouble();
-  if (value is String) return double.tryParse(value);
-  return null;
-}
-
-// Tambahkan di bawah semua class State
-class _SensorValueColumn extends StatelessWidget {
-  final double? value;
-  final String unit;
-  final String label;
-  const _SensorValueColumn(
-      {this.value, required this.unit, required this.label, Key? key})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
+  // 7. Widget helper BARU untuk data dari model baru
+  Widget _buildSensorInfoColumn(String label, String value, IconData icon) {
     return Column(
       children: [
-        Text(
-          value != null ? value!.toStringAsFixed(1) : '',
-          style: const TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-            fontFamily: 'Courier',
-          ),
-        ),
-        Text(
-          unit,
-          style: const TextStyle(
-            fontSize: 18,
-            color: Colors.black54,
-          ),
-        ),
+        Icon(icon, color: Colors.white, size: 28),
         const SizedBox(height: 8),
         Text(
           label,
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
           style: const TextStyle(
-            fontSize: 14,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
-          ),
+              color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
+
+  Widget _buildConfigRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70)),
+          Text(value,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  // 8. HAPUS SEMUA WIDGET HELPER LAMA
+  // - _formatTime() (DIHAPUS)
+  // - _buildBigSensorCard() (DIHAPUS)
+  // - _buildTripleSensorCard() (DIHAPUS)
+  // - _buildSensorRow() (DIHAPUS)
 }
+
+// 9. HAPUS SEMUA CLASS HELPER LAMA DI BAWAH INI
+// - class SensorRealtimeData (DIHAPUS)
+// - double? _parseToDouble(dynamic value) (DIHAPUS)
+// - class _SensorValueColumn (DIHAPUS)

@@ -10,26 +10,14 @@ class SensorInitial extends SensorState {}
 
 class SensorLoading extends SensorState {}
 
+// State sukses, membawa SATU SensorDataModel
 class SensorLoaded extends SensorState {
-  final SensorDataModel data;
-  SensorLoaded(this.data);
-
-  @override
-  List<Object?> get props => [data];
+  final SensorDataModel sensorData;
+  SensorLoaded(this.sensorData);
 }
 
-class SensorHistoryLoaded extends SensorState {
-  final List<SensorDataModel> history;
-  SensorHistoryLoaded(this.history);
-
-  @override
-  List<Object?> get props => [history];
-}
-
+// State error
 class SensorError extends SensorState {
   final String message;
   SensorError(this.message);
-
-  @override
-  List<Object?> get props => [message];
-} 
+}

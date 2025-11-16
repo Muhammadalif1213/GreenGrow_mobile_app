@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:greengrow_app/presentation/pages/activity/activity_history_screen.dart';
-import 'package:greengrow_app/presentation/pages/activity/upload_activity_screen.dart';
 import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen.dart';
 import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen_update.dart';
 import '../../blocs/device_control/device_control_bloc.dart';

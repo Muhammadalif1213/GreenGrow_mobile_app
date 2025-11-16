@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../dashboard/farmer_dashboard_screen.dart';
 import '../device/device_screen.dart';
-import '../activity/activity_history_screen.dart';
-import '../activity/upload_activity_screen.dart';
-import '../map/greenhouse_map_screen.dart';
 import '../profile/profile_farmer_screen.dart';
 import '../privacy/privacy_screen.dart';
 import '../notification/notification_screen.dart';
@@ -168,12 +165,6 @@ class SettingsScreen extends StatelessWidget {
                             Icons.thermostat_auto_outlined,
                             const Color(0xFF2196F3),
                             () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const GreenhouseMapScreen(),
-                                ),
-                              );
                             },
                           ),
                         ],

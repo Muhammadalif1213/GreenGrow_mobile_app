@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:greengrow_app/core/config/api_config.dart';
 import '../../domain/models/notification_model.dart';
 
 class NotificationRepository {
   final Dio dio;
   final FlutterSecureStorage? storage;
-  static const String _baseUrl = 'http://10.0.2.2:3000/api';
+  // static const String _baseUrl = 'http://10.0.2.2:3000/api';
 
   NotificationRepository(this.dio, [this.storage]);
 
@@ -17,7 +18,7 @@ class NotificationRepository {
     try {
       final token = await storage?.read(key: 'auth_token');
       final response = await dio.get(
-        '$_baseUrl/notifications',
+        '${ApiConfig.baseUrl}/notifications',
         queryParameters: {
           'page': page,
           'limit': limit,
@@ -60,7 +61,7 @@ class NotificationRepository {
     try {
       final token = await storage?.read(key: 'auth_token');
       final response = await dio.get(
-        '$_baseUrl/notifications/unread-count',
+        '${ApiConfig.baseUrl}/notifications/unread-count',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
@@ -86,7 +87,7 @@ class NotificationRepository {
     try {
       final token = await storage?.read(key: 'auth_token');
       final response = await dio.put(
-        '$_baseUrl/notifications/$notificationId/read',
+        '${ApiConfig.baseUrl}/notifications/$notificationId/read',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
@@ -105,7 +106,7 @@ class NotificationRepository {
     try {
       final token = await storage?.read(key: 'auth_token');
       final response = await dio.put(
-        '$_baseUrl/notifications/read-all',
+        '${ApiConfig.baseUrl}/notifications/read-all',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),
@@ -124,7 +125,7 @@ class NotificationRepository {
     try {
       final token = await storage?.read(key: 'auth_token');
       final response = await dio.delete(
-        '$_baseUrl/notifications/$notificationId',
+        '${ApiConfig.baseUrl}/notifications/$notificationId',
         options: Options(
           headers: {'Authorization': 'Bearer $token'},
         ),

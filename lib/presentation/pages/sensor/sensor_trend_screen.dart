@@ -24,30 +24,30 @@ class _SensorTrendScreenState extends State<SensorTrendScreen> {
   void initState() {
     super.initState();
     repository = SensorRepository(Dio(), const FlutterSecureStorage());
-    fetchData();
+    // fetchData();
   }
 
-  Future<void> fetchData() async {
-    setState(() {
-      isLoading = true;
-      error = null;
-    });
-    try {
-      final result =
-          await repository.fetchTemperatureAndHumidityTrends(range: range);
-      setState(() {
-        temperatureData = result['temperature'] ?? [];
-        humidityData = result['humidity'] ?? [];
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error in sensor_trend_screen: $e');
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
-    }
-  }
+  // Future<void> fetchData() async {
+  //   setState(() {
+  //     isLoading = true;
+  //     error = null;
+  //   });
+  //   try {
+  //     final result =
+  //         await repository.fetchTemperatureAndHumidityTrends(range: range);
+  //     setState(() {
+  //       temperatureData = result['temperature'] ?? [];
+  //       humidityData = result['humidity'] ?? [];
+  //       isLoading = false;
+  //     });
+  //   } catch (e) {
+  //     print('Error in sensor_trend_screen: $e');
+  //     setState(() {
+  //       error = e.toString();
+  //       isLoading = false;
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +60,7 @@ class _SensorTrendScreenState extends State<SensorTrendScreen> {
               setState(() {
                 range = val;
               });
-              fetchData();
+              // fetchData();
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'week', child: Text('Mingguan')),
@@ -79,7 +79,7 @@ class _SensorTrendScreenState extends State<SensorTrendScreen> {
                       Text('Error: $error', textAlign: TextAlign.center),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: fetchData,
+                        onPressed: (){},
                         child: const Text('Coba Lagi'),
                       ),
                     ],
@@ -93,7 +93,9 @@ class _SensorTrendScreenState extends State<SensorTrendScreen> {
                       ),
                     )
                   : RefreshIndicator(
-                      onRefresh: fetchData,
+                      onRefresh: () async {
+                        // await fetchData();
+                      },
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.all(16),
