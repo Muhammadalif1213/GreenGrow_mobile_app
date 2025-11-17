@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen_update.dart';
 import 'package:greengrow_app/presentation/pages/device/device_screen_update.dart';
-import '../dashboard/farmer_dashboard_screen.dart';
-import '../device/device_screen.dart';
+import 'package:greengrow_app/presentation/pages/profile/new_password_screen.dart';
 import '../profile/profile_farmer_screen.dart';
-import '../privacy/privacy_screen.dart';
-import '../notification/notification_screen.dart';
 import '../about/about_screen.dart';
 import '../supports/supports_screen.dart';
-import '../auth/register_screen.dart';
 import '../auth/login_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -135,12 +131,12 @@ class SettingsScreen extends StatelessWidget {
                             Icons.lock,
                             const Color(0xFF509168),
                             () {
-                              // Navigator.push(
-                              //   context,
-                              //   MaterialPageRoute(
-                              //     builder: (context) => ResetPasswordScreen(),
-                              //   ),
-                              // );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NewPasswordScreen(),
+                                ),
+                              );
                             },
                           ),
                           // _buildSettingsItem(

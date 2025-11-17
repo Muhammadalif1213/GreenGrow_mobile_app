@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:greengrow_app/data/repositories/new_password_repository.dart';
+import 'package:greengrow_app/presentation/blocs/new_password_bloc/new_password_bloc.dart';
 import 'package:greengrow_app/presentation/pages/dashboard/farmer_dashboard_screen_update.dart';
 import 'package:provider/provider.dart';
 import 'package:greengrow_app/core/providers/auth_provider.dart';
 import 'package:greengrow_app/core/providers/notification_provider.dart';
 import 'package:greengrow_app/data/repositories/auth_repository.dart';
 import 'package:greengrow_app/data/repositories/auth_repository_impl.dart';
-import 'package:greengrow_app/data/repositories/location_repository.dart';
 import 'package:greengrow_app/data/repositories/notification_repository.dart';
 import 'package:greengrow_app/presentation/blocs/auth/auth_bloc.dart';
 import 'package:greengrow_app/presentation/pages/auth/login_screen.dart';
@@ -73,6 +74,12 @@ class MyApp extends StatelessWidget {
             context.read<FlutterSecureStorage>(),
           ),
         ),
+        RepositoryProvider<NewPasswordRepository>(
+          create: (context) => NewPasswordRepository(
+            context.read<Dio>(),
+            context.read<FlutterSecureStorage>(),
+          ),
+        ),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -81,6 +88,11 @@ class MyApp extends StatelessWidget {
               authRepository: context.read<AuthRepository>(),
             ),
           ),
+          BlocProvider<NewPasswordBloc>(
+            create: (context) => NewPasswordBloc(
+              newPasswordRepository: context.read<NewPasswordRepository>(),
+            ),
+          )
         ],
         child: MaterialApp(
           title: 'GreenGrow',
@@ -98,7 +110,8 @@ class MyApp extends StatelessWidget {
             '/login': (context) => const LoginScreen(),
             '/register': (context) => const RegisterScreen(),
             '/admin-dashboard': (context) => const AdminDashboardScreen(),
-            '/farmer-dashboard': (context) => const FarmerDashboardScreenUpdate(),
+            '/farmer-dashboard': (context) =>
+                const FarmerDashboardScreenUpdate(),
             '/notifications': (context) => const NotificationScreen(),
           },
         ),

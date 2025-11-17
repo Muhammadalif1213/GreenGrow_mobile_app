@@ -19,7 +19,7 @@ class UserModel {
   final String? fcmToken;
 
   UserModel({
-    this.id,
+    required this.id,
     required this.username,
     required this.email,
     required this.fullName,
@@ -39,7 +39,7 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['uid'],
+      id: json['id'],
       username: json['username'] ?? '',
       email: json['email'] ?? '',
       fullName: json['name'] ?? '',
