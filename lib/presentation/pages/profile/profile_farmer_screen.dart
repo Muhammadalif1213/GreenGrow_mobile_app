@@ -93,19 +93,11 @@ class _ProfileFarmerScreenState extends State<ProfileFarmerScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    userProfile?.fullName ?? 'Loading...',
+                    userProfile?.username ?? 'Loading...',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    userProfile?.role == 'farmer' ? 'Petani' : userProfile?.role ?? 'Loading...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -136,8 +128,8 @@ class _ProfileFarmerScreenState extends State<ProfileFarmerScreen> {
             _buildInfoSection(
               'Informasi Pribadi',
               [
-                 _buildInfoItem('ID User', userProfile?.id.toString() ?? 'Loading...'),
-                _buildInfoItem('Username', userProfile?.username ?? 'Loading...'),
+                //  _buildInfoItem('ID User', userProfile?.id.toString() ?? 'Loading...'),
+                _buildInfoItem('Nama Lengkap', userProfile?.fullName ?? 'Loading...'),
                 _buildInfoItem('Email', userProfile?.email ?? 'Loading...'),
                 _buildInfoItem('Nomor Telepon', userProfile?.phoneNumber ?? 'Tidak tersedia'),
                 _buildInfoItem('Role', userProfile?.role == 'farmer' ? 'Petani' : userProfile?.role ?? 'Loading...'),

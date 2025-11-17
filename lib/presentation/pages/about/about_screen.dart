@@ -313,12 +313,12 @@ class _AboutScreenState extends State<AboutScreen>
             Icons.people,
             [
               _buildUserTypeItem(
-                Icons.agriculture,
-                'Petani Melon',
-                'Monitoring dan kontrol greenhouse secara langsung',
-                const Color(0xFF22C55E),
+                Icons.admin_panel_settings,
+                'Farmer Greenhouse',
+                'Monitoring dan kontrol blower realtime',
+                const Color.fromARGB(255, 59, 246, 68),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               _buildUserTypeItem(
                 Icons.admin_panel_settings,
                 'Admin Greenhouse',
@@ -345,7 +345,7 @@ class _AboutScreenState extends State<AboutScreen>
             Icons.code,
             [
               _buildInfoText(
-                'GreenGrow dikembangkan sebagai solusi inovatif untuk mendukung petani Indonesia dalam mengoptimalkan hasil pertanian melalui teknologi IoT dan monitoring cerdas.',
+                'GreenGrow by Capstone Team dikembangkan sebagai solusi inovatif untuk mendukung hasil pertanian yang optimal melalui teknologi IoT dan monitoring cerdas.',
               ),
               const SizedBox(height: 20),
               Container(
@@ -363,7 +363,7 @@ class _AboutScreenState extends State<AboutScreen>
                   ),
                 ),
                 child: Text(
-                  '🌱 Developed with 💚 for Indonesian Farmers',
+                  '🌱 Support Indonesian Future Smart Agriculture',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -404,7 +404,7 @@ class _AboutScreenState extends State<AboutScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Smart Agriculture Technology',
+                  'Smart Agriculture Technology by Capstone Team',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[400],
@@ -521,18 +521,6 @@ class _AboutScreenState extends State<AboutScreen>
         'title': 'Riwayat Lengkap',
         'description': 'Simpan dan analisis data historis sensor untuk evaluasi pertanian',
         'color': Colors.teal,
-      },
-      {
-        'icon': Icons.photo_camera,
-        'title': 'Dokumentasi Visual',
-        'description': 'Upload foto bukti perawatan tanaman untuk monitoring yang lebih baik',
-        'color': Colors.pink,
-      },
-      {
-        'icon': Icons.map,
-        'title': 'Integrasi GPS',
-        'description': 'Tampilkan lokasi greenhouse di peta untuk memudahkan navigasi',
-        'color': Colors.green,
       },
     ];
 
@@ -670,12 +658,8 @@ class _AboutScreenState extends State<AboutScreen>
   Widget _buildTechGrid() {
     final techSpecs = [
       {'label': 'Platform', 'value': 'Android'},
-      {'label': 'Framework', 'value': 'Flutter'},
-      {'label': 'Arsitektur', 'value': 'Clean Architecture'},
-      {'label': 'State Management', 'value': 'BLoC Pattern'},
-      {'label': 'Database Lokal', 'value': 'SQLite'},
-      {'label': 'Database Server', 'value': 'MySQL'},
-      {'label': 'Hardware', 'value': 'ESP32 + Sensor DHT22'},
+      {'label': 'Database Server', 'value': 'Firebase Firestore'},
+      {'label': 'IoT Hardware', 'value': 'ESP32 + Sensor DHT22'},
       {'label': 'Konektivitas', 'value': 'WiFi + Internet'},
     ];
 
@@ -692,7 +676,7 @@ class _AboutScreenState extends State<AboutScreen>
       itemBuilder: (context, index) {
         final spec = techSpecs[index];
         return Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -712,7 +696,7 @@ class _AboutScreenState extends State<AboutScreen>
               Text(
                 spec['label']!,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   color: Colors.grey[400],
                   fontWeight: FontWeight.w500,
                 ),
@@ -721,7 +705,7 @@ class _AboutScreenState extends State<AboutScreen>
               Text(
                 spec['value']!,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: 12,
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),

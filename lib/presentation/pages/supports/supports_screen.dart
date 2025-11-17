@@ -46,7 +46,7 @@ class SupportsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Tim Dukungan GreenGrow',
+                    'GreenGrow Support',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -55,7 +55,7 @@ class SupportsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Kami siap membantu Anda 24/7\nuntuk kesuksesan greenhouse Anda',
+                    'Capstone Team Teknologi Informasi UMY',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

@@ -135,12 +135,12 @@ class SettingsScreen extends StatelessWidget {
                             Icons.lock,
                             const Color(0xFF509168),
                             () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PrivacyScreen(),
-                                ),
-                              );
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (context) => ResetPasswordScreen(),
+                              //   ),
+                              // );
                             },
                           ),
                           // _buildSettingsItem(

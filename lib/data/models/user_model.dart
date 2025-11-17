@@ -39,16 +39,16 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'],
+      id: json['uid'],
       username: json['username'] ?? '',
       email: json['email'] ?? '',
-      fullName: json['full_name'] ?? '',
+      fullName: json['name'] ?? '',
 
       // INI SUDAH BENAR, pertahankan
       role: _parseRole(json),
 
       profilePhoto: json['profile_photo']?.toString(),
-      phoneNumber: json['phone_number']?.toString(),
+      phoneNumber: json['phone']?.toString(),
       profilePhotoType: json['profile_photo_type']?.toString(),
       roleId: json['role_id'] is int
           ? json['role_id']
