@@ -95,6 +95,7 @@ class MyApp extends StatelessWidget {
           )
         ],
         child: MaterialApp(
+          debugShowCheckedModeBanner: false,
           title: 'GreenGrow',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
