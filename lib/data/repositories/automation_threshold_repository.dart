@@ -12,7 +12,7 @@ class AutomationThresholdRepository {
   Future<List<AutomationThresholdModel>> getThresholds() async {
     final token = await storage.read(key: 'auth_token');
     final response = await dio.get(
-      '${ApiConfig.baseUrl}/sensors/thresholds',
+      '${ApiConfig.baseUrl}/iot/status',
       options: Options(headers: {'Authorization': 'Bearer $token'}),
     );
     final list = response.data['data'] as List?;
@@ -27,10 +27,8 @@ class AutomationThresholdRepository {
   }) async {
     final token = await storage.read(key: 'auth_token');
     await dio.post(
-      '${ApiConfig.baseUrl}/automation-threshold',
+      '${ApiConfig.baseUrl}/iot/status',
       data: {
-        'parameter': parameter,
-        'device_type': deviceType,
         'max_value': maxValue,
       },
       options: Options(headers: {'Authorization': 'Bearer $token'}),

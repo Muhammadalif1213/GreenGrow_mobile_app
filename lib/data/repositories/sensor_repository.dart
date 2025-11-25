@@ -47,4 +47,47 @@ class SensorRepository {
       throw Exception('Gagal mem-parsing data sensor.');
     }
   }
+
+  Future<SensorDataModel> setMaxThresholds({
+    required double maxTemperature,
+  }) async {
+    final token = await storage?.read(key: 'auth_token');
+    final role = await storage?.read(key: 'role');
+
+    if (token == null) {
+      throw Exception('Token tidak ditemukan, silakan login ulang.');
+    }
+
+    if (role != 'admin') {
+      throw Exception('Hanya Admin yang dapat mengatur ambang batas sensor.');
+    }
+
+    final url = '${ApiConfig.baseUrl}/iot/config';
+
+    try {
+      print('== 1. MENGATUR AMBANG BATAS MAKSIMUM SENSOR ==');
+      print('URL yang dipanggil: $url');
+
+      final response = await dio.post(
+        url,
+        data: {
+          'max_temperature': maxTemperature,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      print('== 2. DATA AMBANG BATAS DITERIMA (MENTAH) ==');
+      print(response.data);
+
+      return SensorDataModel.fromJson(response.data['data']);
+    } on DioException catch (e) {
+      print('== GAGAL MENGATUR AMBANG BATAS SENSOR (DioException) ==');
+      print('Error: ${e.message}');
+      throw Exception('Gagal mengatur ambang batas sensor: ${e.message}');
+    } catch (e) {
+      print('== GAGAL PARSING DATA AMBANG BATAS SENSOR (Error) ==');
+      print('Error: $e');
+      throw Exception('Gagal mem-parsing data ambang batas sensor.');
+    }
+  }
 }

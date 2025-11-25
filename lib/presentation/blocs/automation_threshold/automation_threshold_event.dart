@@ -8,12 +8,15 @@ abstract class AutomationThresholdEvent extends Equatable {
 class FetchThresholds extends AutomationThresholdEvent {}
 
 class UpsertThreshold extends AutomationThresholdEvent {
+  
+  final double maxTemperature;
   final String parameter;
   final String deviceType;
   final double? minValue;
   final double? maxValue;
 
   UpsertThreshold({
+    required this.maxTemperature,
     required this.parameter,
     required this.deviceType,
     this.minValue,

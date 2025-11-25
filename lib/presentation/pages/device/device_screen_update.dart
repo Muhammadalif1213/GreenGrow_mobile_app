@@ -106,75 +106,128 @@ class DeviceScreenUpdate extends StatelessWidget {
                   child: ListView(
                     padding: const EdgeInsets.all(16),
                     children: [
+                      // const SizedBox(height: 16),
+                      // const Text(
+                      //   'Control',
+                      //   style: TextStyle(
+                      //     color: Colors.white,
+                      //     fontSize: 18,
+                      //     fontWeight: FontWeight.bold,
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 8),
+                      // // GlassCard status sistem (atas)
+                      // GlassCard(
+                      //   child: Padding(
+                      //     padding: const EdgeInsets.all(16.0),
+                      //     child: Column(
+                      //       crossAxisAlignment: CrossAxisAlignment.start,
+                      //       children: [
+                      //         Text(
+                      //           'Status Perangkat',
+                      //           style: TextStyle(
+                      //             color: Colors.white.withOpacity(0.9),
+                      //             fontSize: 14,
+                      //             fontWeight: FontWeight.w500,
+                      //           ),
+                      //         ),
+                      //         const SizedBox(height: 12),
+                      //         Row(
+                      //           children: [
+                      //             const Text(
+                      //               'Automation: ',
+                      //               style: TextStyle(
+                      //                 color: Colors.white,
+                      //                 fontSize: 28,
+                      //                 fontWeight: FontWeight.bold,
+                      //               ),
+                      //             ),
+                      //             Text(
+                      //               isAutomationEnabled ? 'ON' : 'OFF',
+                      //               style: TextStyle(
+                      //                 color: Colors.white.withOpacity(0.9),
+                      //                 fontSize: 28,
+                      //                 fontWeight: FontWeight.w400,
+                      //               ),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //         const SizedBox(height: 12),
+                      //         Row(
+                      //           children: [
+                      //             const Text(
+                      //               'Blower: ',
+                      //               style: TextStyle(
+                      //                 color: Colors.white,
+                      //                 fontSize: 28,
+                      //                 fontWeight: FontWeight.bold,
+                      //               ),
+                      //             ),
+                      //             Text(
+                      //               isAutomationEnabled ? 'ON' : 'OFF',
+                      //               style: TextStyle(
+                      //                 color: Colors.white.withOpacity(0.9),
+                      //                 fontSize: 28,
+                      //                 fontWeight: FontWeight.w400,
+                      //               ),
+                      //             ),
+                      //           ],
+                      //         ),
+                      //         const SizedBox(height: 16),
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Control',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Status Perangkat',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              isAutomationEnabled
+                                  ? 'Sistem Aktif'
+                                  : 'Manual Mode',
+                              style: const TextStyle(
+                                color: Color.fromARGB(255, 255, 255, 255),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
-                      // GlassCard status sistem (atas)
+                      // GlassCard status perangkat
                       GlassCard(
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Status Perangkat',
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.9),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              // === PERUBAHAN DI SINI ===
+                              _buildStatusRow(
+                                  'Automation', isAutomationEnabled),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  const Text(
-                                    'Automation: ',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    isAutomationEnabled ? 'ON' : 'OFF',
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.9),
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      isAutomationEnabled
-                                          ? 'Sistem Aktif'
-                                          : 'Manual Mode',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              _buildStatusRow('Blower', blowerOn),
+                              const SizedBox(height: 12),
+                              // Baris baru untuk MaxTemp
+                              _buildStatusRow('Batas Suhu', maxTemp,
+                                  unit: '°C'),
+                              // ========================
                             ],
                           ),
                         ),
@@ -239,36 +292,6 @@ class DeviceScreenUpdate extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Status Perangkat',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // GlassCard status perangkat
-                      GlassCard(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // === PERUBAHAN DI SINI ===
-                              _buildStatusRow(
-                                  'Automation', isAutomationEnabled),
-                              const SizedBox(height: 12),
-                              _buildStatusRow('Blower', blowerOn),
-                              const SizedBox(height: 12),
-                              // Baris baru untuk MaxTemp
-                              _buildStatusRow('Batas Suhu', maxTemp,
-                                  unit: '°C'),
-                              // ========================
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -365,9 +388,9 @@ class DeviceScreenUpdate extends StatelessWidget {
     required Function(bool) onChanged,
     bool isManualControl = true, // <-- Tambahkan parameter ini
   }) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: GlassCard(
+    return GlassCard(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -425,7 +448,7 @@ class DeviceScreenUpdate extends StatelessWidget {
                       );
                       return; // Hentikan, jangan ubah switch
                     }
-
+        
                     // Jika lolos, panggil fungsi onChanged
                     onChanged(newValue);
                   },
@@ -502,16 +525,5 @@ class DeviceScreenUpdate extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  // Widget _buildStatusCard (Tidak terpakai di UI ini, tapi biarkan)
-  Widget _buildStatusCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required String trend,
-  }) {
-    // ... (kode Anda sebelumnya)
-    return Container(); // Placeholder
   }
 }

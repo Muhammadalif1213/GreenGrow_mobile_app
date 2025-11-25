@@ -103,9 +103,7 @@ class DeviceControlRepository {
     final url = '${ApiConfig.baseUrl}/iot/automation';
 
     // 2. Siapkan request body sesuai API baru Anda
-    final requestBody = {
-      'status': newStatus 
-    };
+    final requestBody = {'status': newStatus};
 
     try {
       // 3. GANTI METHOD dari PUT menjadi POST
@@ -123,17 +121,17 @@ class DeviceControlRepository {
         throw Exception(
             response.data['message'] ?? 'Gagal mengubah status automation');
       }
-      
-      // Berhasil. BLoC akan me-refresh datanya.
 
+      // Berhasil. BLoC akan me-refresh datanya.
     } on DioException catch (e) {
       // Tangani error jika respons tidak 200 (misal: 404, 500)
-      throw Exception('Gagal mengubah status automation: ${e.response?.data?['message'] ?? e.message}');
+      throw Exception(
+          'Gagal mengubah status automation: ${e.response?.data?['message'] ?? e.message}');
     } catch (e) {
       throw Exception('Gagal mengubah status automation.');
     }
   }
-  
+
   Future<void> setBlowerStatus({required bool newStatus}) async {
     final token = await storage?.read(key: 'auth_token');
     if (token == null) {
@@ -144,9 +142,7 @@ class DeviceControlRepository {
     final url = '${ApiConfig.baseUrl}/iot/blower';
 
     // 2. Siapkan request body sesuai API baru Anda
-    final requestBody = {
-      'status': newStatus 
-    };
+    final requestBody = {'status': newStatus};
 
     try {
       // 3. GANTI METHOD dari PUT menjadi POST
@@ -164,14 +160,47 @@ class DeviceControlRepository {
         throw Exception(
             response.data['message'] ?? 'Gagal mengubah status Blower');
       }
-      
-      // Berhasil. BLoC akan me-refresh datanya.
 
+      // Berhasil. BLoC akan me-refresh datanya.
     } on DioException catch (e) {
       // Tangani error jika respons tidak 200 (misal: 404, 500)
-      throw Exception('Gagal mengubah status Blower: ${e.response?.data?['message'] ?? e.message}');
+      throw Exception(
+          'Gagal mengubah status Blower: ${e.response?.data?['message'] ?? e.message}');
     } catch (e) {
       throw Exception('Gagal mengubah status Blower.');
+    }
+  }
+
+  /// MEMPERBARUI: /api/iot/config (PUT) - Asumsi
+  /// FUNGSI BARU ANDA untuk mengubah maxTemp
+  Future<void> updateMaxTemp({required int temp}) async {
+    final token = await storage?.read(key: 'auth_token');
+    if (token == null) throw Exception('Token tidak ditemukan');
+
+    // Asumsi endpoint-nya sama, hanya method-nya PUT
+    final url = '${ApiConfig.baseUrl}/iot/config';
+
+    // Sesuai permintaan Anda, request body-nya adalah {"temp": ...}
+    final requestBody = {'temp': temp};
+
+    try {
+      // Menggunakan PUT untuk operasi update
+      final response = await dio.post(
+        url,
+        data: requestBody,
+        options: Options(headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        }),
+      );
+
+      // Sesuai respons sukses Anda
+      if (response.data['status'] != 'success') {
+        throw Exception(
+            response.data['message'] ?? 'Gagal memperbarui suhu maks');
+      }
+    } on DioException catch (e) {
+      throw Exception('Error: ${e.response?.data?['message'] ?? e.message}');
     }
   }
 }

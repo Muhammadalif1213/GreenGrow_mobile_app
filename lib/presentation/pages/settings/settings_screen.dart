@@ -154,19 +154,19 @@ class SettingsScreen extends StatelessWidget {
                           // ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      _buildSettingsSection(
-                        'Setting Device',
-                        [
-                          _buildSettingsItem(
-                            'Ubah Ambang batas Suhu',
-                            Icons.thermostat_auto_outlined,
-                            const Color(0xFF2196F3),
-                            () {
-                            },
-                          ),
-                        ],
-                      ),
+                      // const SizedBox(height: 16),
+                      // _buildSettingsSection(
+                      //   'Setting Device',
+                      //   [
+                      //     _buildSettingsItem(
+                      //       'Ubah Ambang batas Suhu',
+                      //       Icons.thermostat_auto_outlined,
+                      //       const Color(0xFF2196F3),
+                      //       () {
+                      //       },
+                      //     ),
+                      //   ],
+                      // ),
                       // _buildSettingsSection(
                       //   'Greenhouse',
                       //   [
@@ -376,7 +376,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsItem(String title, IconData icon, Color iconColor, VoidCallback onTap) {
+  Widget _buildSettingsItem(
+      String title, IconData icon, Color iconColor, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -462,7 +463,8 @@ class SettingsScreen extends StatelessWidget {
                 Navigator.of(context).pop();
               },
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
               child: const Text(
                 'Batal',
@@ -476,7 +478,8 @@ class SettingsScreen extends StatelessWidget {
               onPressed: () async {
                 Navigator.of(context).pop();
                 // Hapus token dan redirect ke login
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                final authProvider =
+                    Provider.of<AuthProvider>(context, listen: false);
                 await authProvider.logout();
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -487,7 +490,8 @@ class SettingsScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE91E63),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

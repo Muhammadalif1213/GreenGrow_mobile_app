@@ -12,9 +12,9 @@ class ConfigModel {
   factory ConfigModel.fromJson(Map<String, dynamic> json) {
     return ConfigModel(
       // ?? false adalah nilai default jika 'automation' null
-      automation: json['automation'] ?? false, 
+      automation: json['automation'] ?? false,
       blower: json['blower'] ?? false,
-      // (json['maxTemp'] as num?)?.toInt() ?? 0 
+      // (json['maxTemp'] as num?)?.toInt() ?? 0
       // adalah cara aman untuk mengambil angka (int)
       maxTemp: (json['maxTemp'] as num?)?.toInt() ?? 0,
     );
@@ -24,7 +24,7 @@ class ConfigModel {
     return {
       'automation': automation,
       'blower': blower,
-      'maxTemp': maxTemp,
+      'temp': maxTemp,
     };
   }
 }
@@ -33,7 +33,7 @@ class SensorDataModel {
   final ConfigModel config;
   final double hic;
   final double humbd; // Perhatikan, namanya 'humbd' bukan 'humidity'
-  final double temp;  // Perhatikan, namanya 'temp' bukan 'temperature'
+  final double temp; // Perhatikan, namanya 'temp' bukan 'temperature'
 
   SensorDataModel({
     required this.config,
@@ -46,7 +46,7 @@ class SensorDataModel {
     return SensorDataModel(
       // 1. Panggil factory fromJson dari ConfigModel
       config: ConfigModel.fromJson(json['config'] ?? {}),
-      
+
       // 2. Ambil nilai double dengan aman
       // (json['key'] as num?)?.toDouble() ?? 0.0
       // adalah cara aman untuk mengambil angka (double)

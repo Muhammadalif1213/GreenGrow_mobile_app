@@ -1,60 +1,52 @@
 import 'package:flutter/material.dart';
+import '../../../data/models/sensor_data_model.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_settings_screen.dart';
-import '../../../data/repositories/automation_threshold_repository.dart';
+// 1. IMPORT REPOSITORY & MODEL YANG BENAR
+import 'package:greengrow_app/data/repositories/device_control_repository.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
-import '../../../data/models/automation_threshold_model.dart';
 
 class AdminControlScreen extends StatefulWidget {
+  const AdminControlScreen({super.key}); // Tambahkan const
+
   @override
   State<AdminControlScreen> createState() => _AdminControlScreenState();
 }
 
 class _AdminControlScreenState extends State<AdminControlScreen> {
-  double tempMax = 30.0;
-  double humidityMax = 70.0;
+  double tempMax = 40.0; // Default
+  // 2. HAPUS SEMUA VARIABEL HUMIDITY
   bool showSuccess = false;
   bool showError = false;
   String errorMsg = '';
-  int? tempThresholdId;
-  int? humidityThresholdId;
+  // 3. HAPUS THRESHOLD ID
 
-  late AutomationThresholdRepository thresholdRepo;
+  late DeviceControlRepository deviceRepo; // 4. GANTI REPOSITORY
 
   @override
   void initState() {
     super.initState();
-    thresholdRepo = AutomationThresholdRepository(Dio(), const FlutterSecureStorage());
+    // 5. INISIALISASI REPOSITORY YANG BENAR
+    deviceRepo = DeviceControlRepository(Dio(), const FlutterSecureStorage());
+    // 6. PANGGIL FUNGSI LOAD (UNCOMMENT)
     _loadThresholds();
   }
 
   Future<void> _loadThresholds() async {
     try {
-      final thresholds = await thresholdRepo.getThresholds();
-      // Asumsi: parameter 'temperature' dan 'humidity'
-      final temp = thresholds.firstWhere(
-        (t) => t.parameter == 'temperature',
-        orElse: () => AutomationThresholdModel(id: 0, parameter: '', deviceType: '', minValue: null, maxValue: null)
-      );
-      final hum = thresholds.firstWhere(
-        (t) => t.parameter == 'humidity',
-        orElse: () => AutomationThresholdModel(id: 0, parameter: '', deviceType: '', minValue: null, maxValue: null)
-      );
+      // 7. PANGGIL FUNGSI REPOSITORY YANG BENAR
+      final ConfigModel config = await deviceRepo.getDeviceStatus();
+
       setState(() {
-        if (temp.parameter == 'temperature') {
-          tempMax = temp.maxValue ?? 30.0;
-          tempThresholdId = temp.id;
-        }
-        if (hum.parameter == 'humidity') {
-          humidityMax = hum.maxValue ?? 70.0;
-          humidityThresholdId = hum.id;
-        }
+        // 8. AMBIL DATA DARI CONFIG MODEL
+        tempMax = config.maxTemp.toDouble();
+        // 9. HAPUS LOGIKA HUMIDITY
       });
     } catch (e) {
       setState(() {
         showError = true;
-        errorMsg = 'Gagal memuat threshold: $e';
+        errorMsg = 'Gagal memuat config: $e';
       });
     }
   }
@@ -65,66 +57,61 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       showError = false;
     });
     try {
-      if (tempThresholdId != null) {
-        await thresholdRepo.updateThresholdById(
-          id: tempThresholdId!,
-          maxValue: tempMax,
-        );
-      }
-      if (humidityThresholdId != null) {
-        await thresholdRepo.updateThresholdById(
-          id: humidityThresholdId!,
-          maxValue: humidityMax,
-        );
-      }
+      // 10. PANGGIL FUNGSI UPDATE YANG BENAR
+      await deviceRepo.updateMaxTemp(
+        temp: tempMax.round(), // Kirim nilai int
+      );
+      // 11. HAPUS LOGIKA HUMIDITY
+
       setState(() {
         showSuccess = true;
       });
       Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          showSuccess = false;
-        });
+        if (mounted) {
+          // Tambahkan cek 'mounted'
+          setState(() {
+            showSuccess = false;
+          });
+        }
       });
     } catch (e) {
       setState(() {
         showError = true;
-        errorMsg = 'Gagal menyimpan threshold: $e';
+        errorMsg = 'Gagal menyimpan config: $e';
       });
     }
   }
 
   Future<void> _handleReset() async {
+    const double defaultTemp = 30.0;
     setState(() {
-      tempMax = 30.0;
-      humidityMax = 70.0;
+      tempMax = defaultTemp;
+      // 12. HAPUS LOGIKA HUMIDITY
       showSuccess = false;
       showError = false;
     });
     try {
-      if (tempThresholdId != null) {
-        await thresholdRepo.updateThresholdById(
-          id: tempThresholdId!,
-          maxValue: 30.0,
-        );
-      }
-      if (humidityThresholdId != null) {
-        await thresholdRepo.updateThresholdById(
-          id: humidityThresholdId!,
-          maxValue: 70.0,
-        );
-      }
+      // 13. PANGGIL FUNGSI UPDATE YANG BENAR
+      await deviceRepo.updateMaxTemp(
+        temp: defaultTemp.round(),
+      );
+      // 14. HAPUS LOGIKA HUMIDITY
+
       setState(() {
         showSuccess = true;
       });
       Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          showSuccess = false;
-        });
+        if (mounted) {
+          // Tambahkan cek 'mounted'
+          setState(() {
+            showSuccess = false;
+          });
+        }
       });
     } catch (e) {
       setState(() {
         showError = true;
-        errorMsg = 'Gagal reset threshold: $e';
+        errorMsg = 'Gagal reset config: $e';
       });
     }
   }
@@ -133,14 +120,16 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     if (index == 0) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => AdminDashboardScreen()),
+        MaterialPageRoute(
+            builder: (context) => const AdminDashboardScreen()), // Tambah const
       );
     } else if (index == 1) {
       // Stay on this page
     } else if (index == 2) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => AdminSettingsScreen()),
+        MaterialPageRoute(
+            builder: (context) => AdminSettingsScreen()), // Tambah const
       );
     }
   }
@@ -178,7 +167,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                     SizedBox(width: 8),
                     Text(
                       'Pengaturan berhasil disimpan!',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -198,7 +188,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                     Expanded(
                       child: Text(
                         errorMsg,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -222,7 +213,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                             offset: const Offset(0, 8),
                           ),
                         ],
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.05)),
                       ),
                       child: Column(
                         children: [
@@ -234,14 +226,21 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                                   color: Colors.green.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(50),
                                 ),
-                                child: const Icon(Icons.thermostat, color: Colors.green, size: 24),
+                                child: const Icon(Icons.thermostat,
+                                    color: Colors.green, size: 24),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: const [
-                                  Text('Suhu Maksimum', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-                                  Text('Atur batas maksimum suhu', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                                  Text('Suhu Maksimum',
+                                      style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white)),
+                                  Text('Atur batas maksimum suhu',
+                                      style: TextStyle(
+                                          fontSize: 14, color: Colors.white70)),
                                 ],
                               ),
                             ],
@@ -250,12 +249,17 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Suhu Maksimum: ${tempMax.round()}°C', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
+                              Text('Suhu Maksimum: ${tempMax.round()}°C',
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white)),
                               const SizedBox(height: 8),
                               SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   activeTrackColor: Colors.green,
-                                  inactiveTrackColor: Colors.green.withOpacity(0.2),
+                                  inactiveTrackColor:
+                                      Colors.green.withOpacity(0.2),
                                   thumbColor: Colors.green,
                                   overlayColor: Colors.green.withOpacity(0.2),
                                   trackHeight: 8,
@@ -273,10 +277,15 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                                 ),
                               ),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: const [
-                                  Text('0°C', style: TextStyle(fontSize: 12, color: Colors.white54)),
-                                  Text('50°C', style: TextStyle(fontSize: 12, color: Colors.white54)),
+                                  Text('0°C',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.white54)),
+                                  Text('50°C',
+                                      style: TextStyle(
+                                          fontSize: 12, color: Colors.white54)),
                                 ],
                               ),
                             ],
@@ -284,82 +293,9 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    // Card Kelembapan
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1F2E),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.08),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                child: const Icon(Icons.water_drop, color: Colors.green, size: 24),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text('Kelembapan Maksimum', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-                                  Text('Atur batas maksimum kelembapan', style: TextStyle(fontSize: 14, color: Colors.white70)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Kelembapan Maksimum: ${humidityMax.round()}%', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white)),
-                              const SizedBox(height: 8),
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: Colors.green,
-                                  inactiveTrackColor: Colors.green.withOpacity(0.2),
-                                  thumbColor: Colors.green,
-                                  overlayColor: Colors.green.withOpacity(0.2),
-                                  trackHeight: 8,
-                                ),
-                                child: Slider(
-                                  value: humidityMax,
-                                  min: 0,
-                                  max: 100,
-                                  divisions: 100,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      humidityMax = value;
-                                    });
-                                  },
-                                ),
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text('0%', style: TextStyle(fontSize: 12, color: Colors.white54)),
-                                  Text('100%', style: TextStyle(fontSize: 12, color: Colors.white54)),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+
+                    // 15. HAPUS CARD HUMIDITY (jika ada)
+
                     const SizedBox(height: 32),
                     Row(
                       children: [
@@ -367,7 +303,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                           child: ElevatedButton.icon(
                             onPressed: _handleSave,
                             icon: const Icon(Icons.save, color: Colors.white),
-                            label: const Text('Simpan', style: TextStyle(color: Colors.white)),
+                            label: const Text('Simpan',
+                                style: TextStyle(color: Colors.white)),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2ECC71),
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -381,8 +318,10 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _handleReset,
-                            icon: const Icon(Icons.refresh, color: Colors.white),
-                            label: const Text('Reset', style: TextStyle(color: Colors.white)),
+                            icon:
+                                const Icon(Icons.refresh, color: Colors.white),
+                            label: const Text('Reset',
+                                style: TextStyle(color: Colors.white)),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white54),
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -417,7 +356,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             icon: Icon(Icons.settings_input_component),
             label: 'Control',
           ),
-          
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',
