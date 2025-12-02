@@ -379,38 +379,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           );
                                         },
                                       ),
-                                      const SizedBox(height: 24),
-
-                                      // Login Link
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Already have an account? ',
-                                            style: TextStyle(
-                                              color:
-                                                  Colors.white.withOpacity(0.8),
-                                              fontSize: 14,
-                                            ),
-                                          ),
-                                          TextButton(
-                                            onPressed: () {
-                                              Navigator.pop(context);
-                                            },
-                                            child: const Text(
-                                              'Login',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                decoration:
-                                                    TextDecoration.underline,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
                                     ],
                                   ),
                                 ),

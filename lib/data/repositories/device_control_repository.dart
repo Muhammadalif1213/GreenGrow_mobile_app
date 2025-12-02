@@ -172,19 +172,15 @@ class DeviceControlRepository {
   }
 
   /// MEMPERBARUI: /api/iot/config (PUT) - Asumsi
-  /// FUNGSI BARU ANDA untuk mengubah maxTemp
+  /// MEMPERBARUI: /api/iot/config (PUT)
   Future<void> updateMaxTemp({required int temp}) async {
     final token = await storage?.read(key: 'auth_token');
     if (token == null) throw Exception('Token tidak ditemukan');
 
-    // Asumsi endpoint-nya sama, hanya method-nya PUT
-    final url = '${ApiConfig.baseUrl}/iot/config';
-
-    // Sesuai permintaan Anda, request body-nya adalah {"temp": ...}
+    final url = '${ApiConfig.baseUrl}/iot/maxtemp';
     final requestBody = {'temp': temp};
 
     try {
-      // Menggunakan PUT untuk operasi update
       final response = await dio.post(
         url,
         data: requestBody,
@@ -194,13 +190,36 @@ class DeviceControlRepository {
         }),
       );
 
-      // Sesuai respons sukses Anda
-      if (response.data['status'] != 'success') {
-        throw Exception(
-            response.data['message'] ?? 'Gagal memperbarui suhu maks');
+      // Cek status sukses dengan aman
+      final data = response.data;
+      if (data is Map && data['status'] != 'success') {
+        throw Exception(data['message'] ?? 'Gagal memperbarui suhu maks');
       }
     } on DioException catch (e) {
-      throw Exception('Error: ${e.response?.data?['message'] ?? e.message}');
+
+      String errorMessage = e.message ?? 'Gagal melakukan request';
+      final responseData = e.response?.data;
+
+      // 1. Cek dulu apakah responseData adalah Map (Object)
+      if (responseData is Map<String, dynamic>) {
+        // Jika Map, kita bisa aman mengambil 'message'
+        errorMessage = responseData['message'] ?? errorMessage;
+      }
+      // 2. Cek jika responseData adalah List (Array)
+      else if (responseData is List) {
+        errorMessage = 'Error server: ${responseData.join(", ")}';
+      }
+      // 3. Jika String biasa
+      else if (responseData is String) {
+        errorMessage = responseData;
+      }
+
+      // Print untuk debugging di console agar Anda tahu isi aslinya
+      print('DEBUG ERROR DATA: $responseData');
+
+      throw Exception(errorMessage);
+    } catch (e) {
+      throw Exception('Terjadi kesalahan tidak terduga: $e');
     }
   }
 }

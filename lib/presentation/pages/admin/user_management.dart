@@ -17,7 +17,7 @@ class _UserManagementPageState extends State<UserManagementPage>
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isLoading = false;
-  
+
   // Sample data - replace with actual data from your backend
   List<User> _users = [];
 
@@ -29,7 +29,9 @@ class _UserManagementPageState extends State<UserManagementPage>
   }
 
   Future<void> _fetchUsersFromBackend() async {
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final storage = const FlutterSecureStorage();
       final dio = Dio();
@@ -39,22 +41,32 @@ class _UserManagementPageState extends State<UserManagementPage>
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       final List<dynamic> data = response.data['data'] ?? response.data;
-      _users = data.map<User>((json) => User(
-        id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
-        name: json['full_name'] ?? '',
-        email: json['email'] ?? '',
-        role: (json['role_id'] == 1) ? UserRole.admin : UserRole.petani,
-        phone: json['phone_number'] ?? '',
-        // location: json['profile_photo'] ?? '-', // Hapus location
-        isActive: json['is_active'] == 1 || json['is_active'] == true,
-        lastActive: DateTime.tryParse(json['last_login']?.toString() ?? '') ?? DateTime.now(),
-        joinDate: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.now(),
-        avatar: '',
-      )).toList();
+      _users = data
+          .map<User>((json) => User(
+                id: json['id'] is int
+                    ? json['id']
+                    : int.tryParse(json['id'].toString()) ?? 0,
+                name: json['full_name'] ?? '',
+                email: json['email'] ?? '',
+                role: (json['role_id'] == 1) ? UserRole.admin : UserRole.petani,
+                phone: json['phone_number'] ?? '',
+                // location: json['profile_photo'] ?? '-', // Hapus location
+                isActive: json['is_active'] == 1 || json['is_active'] == true,
+                lastActive:
+                    DateTime.tryParse(json['last_login']?.toString() ?? '') ??
+                        DateTime.now(),
+                joinDate:
+                    DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+                        DateTime.now(),
+                avatar: '',
+              ))
+          .toList();
     } catch (e) {
       // ignore error, show empty
     }
-    setState(() { _isLoading = false; });
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -109,9 +121,9 @@ class _UserManagementPageState extends State<UserManagementPage>
             onPressed: _refreshUsers,
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            onPressed: _showMoreOptions,
-          ),
+              icon:
+                  const Icon(Icons.person_add_alt_rounded, color: Colors.white),
+              onPressed: _showMoreOptions),
         ],
       ),
       body: Column(
@@ -257,7 +269,8 @@ class _UserManagementPageState extends State<UserManagementPage>
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
     );
@@ -347,7 +360,12 @@ class _UserManagementPageState extends State<UserManagementPage>
               radius: 24,
               backgroundColor: const Color(0xFF2ECC71),
               child: Text(
-                user.name.split(' ').map((e) => e[0]).take(2).join().toUpperCase(),
+                user.name
+                    .split(' ')
+                    .map((e) => e[0])
+                    .take(2)
+                    .join()
+                    .toUpperCase(),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -361,7 +379,9 @@ class _UserManagementPageState extends State<UserManagementPage>
                 width: 14,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: user.isActive ? const Color(0xFF2ECC71) : const Color(0xFF6B7280),
+                  color: user.isActive
+                      ? const Color(0xFF2ECC71)
+                      : const Color(0xFF6B7280),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
@@ -491,27 +511,15 @@ class _UserManagementPageState extends State<UserManagementPage>
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.file_download),
-              title: const Text('Export Users'),
-              onTap: () {
-                Navigator.pop(context);
-                _exportUsers();
-              },
+              leading: const Icon(Icons.admin_panel_settings_rounded),
+              title: const Text('Add New Admin'),
+              onTap: _showHelp,
             ),
             ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('User Settings'),
+              leading: const Icon(Icons.person_add_alt_1_rounded),
+              title: const Text('Add New Farmer'),
               onTap: () {
-                Navigator.pop(context);
-                _showUserSettings();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.help),
-              title: const Text('Help'),
-              onTap: () {
-                Navigator.pop(context);
-                _showHelp();
+                Navigator.pushNamed(context, '/register');
               },
             ),
           ],
@@ -607,7 +615,8 @@ class UserDetailsDialog extends StatelessWidget {
         children: [
           _buildDetailRow('Email', user.email),
           _buildDetailRow('Phone', user.phone),
-          _buildDetailRow('Role', user.role == UserRole.admin ? 'Admin' : 'Petani'),
+          _buildDetailRow(
+              'Role', user.role == UserRole.admin ? 'Admin' : 'Petani'),
           // Hapus location
           _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
           _buildDetailRow('Join Date', _formatDate(user.joinDate)),

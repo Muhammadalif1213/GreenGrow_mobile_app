@@ -51,6 +51,20 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     }
   }
 
+  // --- LOGIKA BARU UNTUK TOMBOL ---
+  void _decrementTemp() {
+    setState(() {
+      if (tempMax > 0) tempMax--; // Batas bawah 0
+    });
+  }
+
+  void _incrementTemp() {
+    setState(() {
+      if (tempMax < 100) tempMax++; // Batas atas 100 (sesuaikan jika perlu)
+    });
+  }
+  // --------------------------------
+
   Future<void> _handleSave() async {
     setState(() {
       showSuccess = false;
@@ -249,45 +263,44 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Suhu Maksimum: ${tempMax.round()}°C',
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white)),
-                              const SizedBox(height: 8),
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: Colors.green,
-                                  inactiveTrackColor:
-                                      Colors.green.withOpacity(0.2),
-                                  thumbColor: Colors.green,
-                                  overlayColor: Colors.green.withOpacity(0.2),
-                                  trackHeight: 8,
-                                ),
-                                child: Slider(
-                                  value: tempMax,
-                                  min: 0,
-                                  max: 50,
-                                  divisions: 50,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      tempMax = value;
-                                    });
-                                  },
-                                ),
-                              ),
+                              // Text('Suhu Maksimum: ${tempMax.round()}°C',
+                              //     style: const TextStyle(
+                              //         fontSize: 14,
+                              //         fontWeight: FontWeight.w500,
+                              //         color: Colors.white)),
+                              // const SizedBox(height: 8),
+                              // === BAGIAN YANG DIUBAH: DARI SLIDER KE BUTTON ===
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: const [
-                                  Text('0°C',
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.white54)),
-                                  Text('50°C',
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.white54)),
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Tombol Minus
+                                  _buildControlButton(
+                                    icon: Icons.remove,
+                                    onTap: _decrementTemp,
+                                  ),
+                                  const SizedBox(width: 24),
+                                  // Tampilan Angka
+                                  Container(
+                                    width: 120,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      '${tempMax.round()}°C',
+                                      style: const TextStyle(
+                                        fontSize: 48,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 24),
+                                  // Tombol Plus
+                                  _buildControlButton(
+                                    icon: Icons.add,
+                                    onTap: _incrementTemp,
+                                  ),
                                 ],
                               ),
+                              const SizedBox(height: 16)
                             ],
                           ),
                         ],
@@ -361,6 +374,32 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
             label: 'Settings',
           ),
         ],
+      ),
+    );
+  }
+
+  // Widget Helper untuk Tombol Plus/Minus
+  Widget _buildControlButton(
+      {required IconData icon, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2ECC71).withOpacity(0.1),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFF2ECC71).withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Icon(
+          icon,
+          color: const Color(0xFF2ECC71),
+          size: 28,
+        ),
       ),
     );
   }
