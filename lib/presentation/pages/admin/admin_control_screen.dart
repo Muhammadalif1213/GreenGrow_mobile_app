@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../data/models/audit_log_model.dart';
 import '../../../data/models/sensor_data_model.dart';
+import '../../../data/repositories/audit_repository.dart';
+import '../../blocs/audit/audit_bloc.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_settings_screen.dart';
 // 1. IMPORT REPOSITORY & MODEL YANG BENAR
@@ -15,6 +19,8 @@ class AdminControlScreen extends StatefulWidget {
 }
 
 class _AdminControlScreenState extends State<AdminControlScreen> {
+  late final AuditBloc _auditBloc;
+
   double tempMax = 40.0; // Default
   double originalTempMax = 40.0;
   // 2. HAPUS SEMUA VARIABEL HUMIDITY
@@ -27,11 +33,27 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
   @override
   void initState() {
+    // Init Audit Bloc
+    _auditBloc =
+        AuditBloc(AuditRepository(Dio(), const FlutterSecureStorage()));
+
+    _fetchData();
+
     super.initState();
     // 5. INISIALISASI REPOSITORY YANG BENAR
     deviceRepo = DeviceControlRepository(Dio(), const FlutterSecureStorage());
     // 6. PANGGIL FUNGSI LOAD (UNCOMMENT)
     _loadThresholds();
+  }
+
+  Future<void> _fetchData() async {
+    _auditBloc.add(FetchAuditLogs());
+  }
+
+  @override
+  void dispose() {
+    _auditBloc.close();
+    super.dispose();
   }
 
   Future<void> _loadThresholds() async {
@@ -78,6 +100,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
         temp: tempMax.round(), // Kirim nilai int
       );
       // 11. HAPUS LOGIKA HUMIDITY
+      _fetchData();
 
       setState(() {
         showSuccess = true;
@@ -100,7 +123,6 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   }
 
   Future<void> _handleReset() async {
-    const double defaultTemp = 30.0;
     setState(() {
       tempMax = originalTempMax;
       // 12. HAPUS LOGIKA HUMIDITY
@@ -109,10 +131,12 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
     });
     try {
       // 13. PANGGIL FUNGSI UPDATE YANG BENAR
-      await deviceRepo.updateMaxTemp(
-        temp: defaultTemp.round(),
-      );
-      // 14. HAPUS LOGIKA HUMIDITY
+      // await deviceRepo.updateMaxTemp(
+      //   temp: originalTempMax.round(),
+      // );
+
+      // TRIGGER REFRESH LOG JUGA DI SINI
+      _fetchData();
 
       setState(() {
         showSuccess = false;
@@ -362,6 +386,23 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                         ),
                       ],
                     ),
+                    MultiBlocProvider(
+                        providers: [BlocProvider.value(value: _auditBloc)],
+                        child: RefreshIndicator(
+                          onRefresh: () async {
+                            _fetchData();
+                          },
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.only(top: 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildRecentActivity(),
+                              ],
+                            ),
+                          ),
+                        ))
                   ],
                 ),
               ),
@@ -418,5 +459,119 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildRecentActivity() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+          color: const Color(0xFF1A1F2E),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withOpacity(0.1))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Recent Activity',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+
+          // Gunakan BlocBuilder untuk AuditBloc
+          BlocBuilder<AuditBloc, AuditState>(
+            builder: (context, state) {
+              if (state is AuditLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is AuditLoaded) {
+                if (state.logs.isEmpty) {
+                  return const Text('No recent activity',
+                      style: TextStyle(color: Colors.white70));
+                }
+                // Ambil 5 log terakhir saja agar tidak kepanjangan
+                final logsToShow = state.logs.take(5).toList();
+                return Column(
+                  children:
+                      logsToShow.map((log) => _buildActivityItem(log)).toList(),
+                );
+              } else if (state is AuditError) {
+                return Text('Error: ${state.message}',
+                    style: const TextStyle(color: Colors.red));
+              }
+              return const SizedBox();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 8. Sesuaikan _buildActivityItem dengan Model Baru
+  Widget _buildActivityItem(AuditLogModel log) {
+    // Tentukan icon dan warna berdasarkan action
+    IconData icon;
+    Color color;
+    String description;
+
+    if (log.action == 'set_max_temp') {
+      icon = Icons.thermostat;
+      color = Colors.orange;
+      description = 'Mengubah suhu maks menjadi ${log.newValue}°C';
+    } else {
+      icon = Icons.info;
+      color = const Color(0xFF2ECC71);
+      description = 'Action: ${log.action} -> ${log.newValue}';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: Row(
+        children: [
+          Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Icon(icon, color: color, size: 20)),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Nama User yang melakukan aksi
+                Text(log.user.name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                // Deskripsi aksi
+                Text(description,
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.7), fontSize: 12)),
+                const SizedBox(height: 4),
+                // Waktu
+                Text(_formatActivityTime(log.timestamp),
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.5), fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatActivityTime(DateTime dateTime) {
+    // Konversi ke waktu lokal agar sesuai jam Indonesia
+    final localTime = dateTime.toLocal();
+    final now = DateTime.now();
+    final diff = now.difference(localTime);
+
+    if (diff.inMinutes < 1) return 'Baru saja';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} menit yang lalu';
+    if (diff.inHours < 24) return '${diff.inHours} jam yang lalu';
+    return '${localTime.day}/${localTime.month}/${localTime.year} ${localTime.hour}:${localTime.minute}';
   }
 }
