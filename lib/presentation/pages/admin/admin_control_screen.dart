@@ -16,6 +16,7 @@ class AdminControlScreen extends StatefulWidget {
 
 class _AdminControlScreenState extends State<AdminControlScreen> {
   double tempMax = 40.0; // Default
+  double originalTempMax = 40.0;
   // 2. HAPUS SEMUA VARIABEL HUMIDITY
   bool showSuccess = false;
   bool showError = false;
@@ -41,6 +42,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       setState(() {
         // 8. AMBIL DATA DARI CONFIG MODEL
         tempMax = config.maxTemp.toDouble();
+        originalTempMax = config.maxTemp.toDouble();
         // 9. HAPUS LOGIKA HUMIDITY
       });
     } catch (e) {
@@ -79,6 +81,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
       setState(() {
         showSuccess = true;
+        originalTempMax = tempMax;
       });
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -99,7 +102,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
   Future<void> _handleReset() async {
     const double defaultTemp = 30.0;
     setState(() {
-      tempMax = defaultTemp;
+      tempMax = originalTempMax;
       // 12. HAPUS LOGIKA HUMIDITY
       showSuccess = false;
       showError = false;
@@ -112,7 +115,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       // 14. HAPUS LOGIKA HUMIDITY
 
       setState(() {
-        showSuccess = true;
+        showSuccess = false;
+        originalTempMax = originalTempMax; // Update juga nilai aslinya
       });
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
@@ -150,6 +154,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
 
   @override
   Widget build(BuildContext context) {
+    bool hasChanges = tempMax != originalTempMax;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F1419),
       appBar: AppBar(
@@ -175,8 +181,8 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                   color: const Color(0xFF2ECC71),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(Icons.save, color: Colors.white, size: 20),
                     SizedBox(width: 8),
                     Text(
@@ -244,7 +250,7 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                                     color: Colors.green, size: 24),
                               ),
                               const SizedBox(width: 12),
-                              Column(
+                              const Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: const [
                                   Text('Suhu Maksimum',
@@ -313,20 +319,30 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _handleSave,
-                            icon: const Icon(Icons.save, color: Colors.white),
-                            label: const Text('Simpan',
-                                style: TextStyle(color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2ECC71),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            child: ElevatedButton.icon(
+                          // 5. Gunakan hasChanges untuk enable/disable button
+                          onPressed: hasChanges ? _handleSave : null,
+                          icon: Icon(Icons.save,
+                              color:
+                                  hasChanges ? Colors.white : Colors.white38),
+                          label: Text('Simpan',
+                              style: TextStyle(
+                                  color: hasChanges
+                                      ? Colors.white
+                                      : Colors.white38)),
+                          style: ElevatedButton.styleFrom(
+                            // Ubah warna background saat disabled
+                            backgroundColor: hasChanges
+                                ? const Color(0xFF2ECC71)
+                                : const Color(0xFF2ECC71).withOpacity(0.3),
+                            disabledBackgroundColor:
+                                const Color(0xFF2ECC71).withOpacity(0.3),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                        ),
+                        )),
                         const SizedBox(width: 16),
                         Expanded(
                           child: OutlinedButton.icon(
