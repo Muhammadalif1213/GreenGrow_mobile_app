@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+// Import Arsitektur BLoC & Model yang sudah kita buat
 import 'package:greengrow_app/data/models/user_model.dart';
+import 'package:greengrow_app/data/repositories/user_management_repository.dart';
+import 'package:greengrow_app/presentation/blocs/get_users/get_users_bloc.dart';
 
 class UserManagementPage extends StatefulWidget {
   const UserManagementPage({super.key});
@@ -16,57 +21,11 @@ class _UserManagementPageState extends State<UserManagementPage>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _isLoading = false;
-
-  // Sample data - replace with actual data from your backend
-  List<User> _users = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _fetchUsersFromBackend();
-  }
-
-  Future<void> _fetchUsersFromBackend() async {
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      final storage = const FlutterSecureStorage();
-      final dio = Dio();
-      final token = await storage.read(key: 'auth_token');
-      final response = await dio.get(
-        'http://10.0.2.2:3000/api/users',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
-      );
-      final List<dynamic> data = response.data['data'] ?? response.data;
-      _users = data
-          .map<User>((json) => User(
-                id: json['id'] is int
-                    ? json['id']
-                    : int.tryParse(json['id'].toString()) ?? 0,
-                name: json['full_name'] ?? '',
-                email: json['email'] ?? '',
-                role: (json['role_id'] == 1) ? UserRole.admin : UserRole.petani,
-                phone: json['phone_number'] ?? '',
-                // location: json['profile_photo'] ?? '-', // Hapus location
-                isActive: json['is_active'] == 1 || json['is_active'] == true,
-                lastActive:
-                    DateTime.tryParse(json['last_login']?.toString() ?? '') ??
-                        DateTime.now(),
-                joinDate:
-                    DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-                        DateTime.now(),
-                avatar: '',
-              ))
-          .toList();
-    } catch (e) {
-      // ignore error, show empty
-    }
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override
@@ -76,79 +35,145 @@ class _UserManagementPageState extends State<UserManagementPage>
     super.dispose();
   }
 
-  List<User> get _filteredUsers {
-    if (_searchQuery.isEmpty) return _users;
-    return _users.where((user) {
-      return user.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user.email.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          user.phone.contains(_searchQuery);
+  // Helper untuk memfilter user berdasarkan search query
+  List<UserModel> _filterUsers(List<UserModel> users) {
+    if (_searchQuery.isEmpty) return users;
+    return users.where((user) {
+      final name = user.fullName.toLowerCase();
+      final email = user.email.toLowerCase();
+      final phone = user.phoneNumber?.toLowerCase() ?? '';
+      final query = _searchQuery.toLowerCase();
+
+      return name.contains(query) ||
+          email.contains(query) ||
+          phone.contains(query);
     }).toList();
   }
 
-  List<User> get _adminUsers =>
-      _filteredUsers.where((user) => user.role == UserRole.admin).toList();
-
-  List<User> get _petaniUsers =>
-      _filteredUsers.where((user) => user.role == UserRole.petani).toList();
-
-  bool get _isCurrentUserAdmin {
-    // Cek role user login dari secure storage (atau provider jika ada)
-    // Sementara, asumsikan token admin tersimpan di secure storage dengan key 'user_role'
-    // Jika tidak ada, tombol delete tetap tampil
-    // Untuk produksi, sebaiknya gunakan provider/auth state
-    return true; // Ganti dengan pengecekan role admin jika sudah ada
+  // Helper untuk memfilter berdasarkan Role
+  List<UserModel> _getUsersByRole(List<UserModel> users, String role) {
+    return users
+        .where((user) => user.role.toLowerCase() == role.toLowerCase())
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: const Color(0xFF1A1F2E),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'User Management',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-            color: Colors.white,
+    // Inject BLoC Provider di sini
+    return BlocProvider(
+      create: (context) => UserManagementBloc(
+        UserManagementRepository(Dio(), const FlutterSecureStorage()),
+      )..add(FetchAllUsers()), // Langsung fetch data saat halaman dibuka
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F1419),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: const Color(0xFF1A1F2E),
+          foregroundColor: Colors.white,
+          title: const Text(
+            'User Management',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: Colors.white,
+            ),
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _refreshUsers,
-          ),
-          IconButton(
+          actions: [
+            // Tombol Refresh menggunakan Builder untuk mengakses context BLoC
+            Builder(
+              builder: (context) {
+                return IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: () {
+                    context.read<UserManagementBloc>().add(FetchAllUsers());
+                    HapticFeedback.lightImpact();
+                  },
+                );
+              },
+            ),
+            IconButton(
               icon:
                   const Icon(Icons.person_add_alt_rounded, color: Colors.white),
-              onPressed: _showMoreOptions),
-        ],
-      ),
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildSearchBar(),
-          _buildTabBar(),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildAllUsersTab(),
-                      _buildRoleUsersTab(_adminUsers),
-                      _buildRoleUsersTab(_petaniUsers),
-                    ],
+              onPressed: () => _showMoreOptions(context),
+            ),
+          ],
+        ),
+        // Gunakan BlocBuilder untuk membangun UI berdasarkan State
+        body: BlocBuilder<UserManagementBloc, GetUsersState>(
+          builder: (context, state) {
+            if (state is GetUsersLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (state is GetUsersError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      state.message,
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<UserManagementBloc>().add(FetchAllUsers());
+                      },
+                      child: const Text('Try Again'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state is GetUsersLoaded) {
+              final allUsers = state.users;
+              final filteredUsers = _filterUsers(allUsers);
+
+              // Filter berdasarkan role (string dari API: 'admin', 'farmer')
+              final adminUsers = _getUsersByRole(filteredUsers, 'admin');
+              final farmerUsers = _getUsersByRole(filteredUsers,
+                  'farmer'); // Sesuaikan string role dari API Anda
+
+              return Column(
+                children: [
+                  _buildHeader(allUsers), // Pass semua user untuk statistik
+                  _buildSearchBar(),
+                  _buildTabBar(
+                    allCount: filteredUsers.length,
+                    adminCount: adminUsers.length,
+                    petaniCount: farmerUsers.length,
                   ),
-          ),
-        ],
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildUsersList(filteredUsers),
+                        _buildUsersList(adminUsers),
+                        _buildUsersList(farmerUsers),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return const SizedBox(); // State Initial
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(List<UserModel> users) {
+    final activeCount = users.where((u) => u.isActive == true).length;
+    final adminCount =
+        users.where((u) => u.role.toLowerCase() == 'admin').length;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
@@ -160,76 +185,35 @@ class _UserManagementPageState extends State<UserManagementPage>
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Total Users',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_users.length}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+          _buildHeaderItem('Total Users', '${users.length}', Colors.white),
+          _buildHeaderItem(
+              'Active Users', '$activeCount', const Color(0xFF2ECC71)),
+          _buildHeaderItem('Admins', '$adminCount', const Color(0xFF3B82F6)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderItem(String label, String value, Color valueColor) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Active Users',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_users.where((u) => u.isActive).length}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2ECC71),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Admins',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${_adminUsers.length}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF3B82F6),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: valueColor,
             ),
           ),
         ],
@@ -276,7 +260,10 @@ class _UserManagementPageState extends State<UserManagementPage>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(
+      {required int allCount,
+      required int adminCount,
+      required int petaniCount}) {
     return Container(
       color: const Color(0xFF1A1F2E),
       child: TabBar(
@@ -286,33 +273,21 @@ class _UserManagementPageState extends State<UserManagementPage>
         unselectedLabelColor: Colors.white70,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600),
         tabs: [
-          Tab(text: 'All (${_filteredUsers.length})'),
-          Tab(text: 'Admin (${_adminUsers.length})'),
-          Tab(text: 'Petani (${_petaniUsers.length})'),
+          Tab(text: 'All ($allCount)'),
+          Tab(text: 'Admin ($adminCount)'),
+          Tab(text: 'Petani ($petaniCount)'),
         ],
       ),
     );
   }
 
-  Widget _buildAllUsersTab() {
-    return _buildUsersList(_filteredUsers);
-  }
-
-  Widget _buildRoleUsersTab(List<User> users) {
-    return _buildUsersList(users);
-  }
-
-  Widget _buildUsersList(List<User> users) {
+  Widget _buildUsersList(List<UserModel> users) {
     if (users.isEmpty) {
       return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.people_outline,
-              size: 64,
-              color: Color(0xFF9CA3AF),
-            ),
+            Icon(Icons.people_outline, size: 64, color: Color(0xFF9CA3AF)),
             SizedBox(height: 16),
             Text(
               'No users found',
@@ -332,12 +307,20 @@ class _UserManagementPageState extends State<UserManagementPage>
       itemCount: users.length,
       itemBuilder: (context, index) {
         final user = users[index];
-        return _buildUserCard(user);
+        return _buildUserCard(user, context);
       },
     );
   }
 
-  Widget _buildUserCard(User user) {
+  Widget _buildUserCard(UserModel user, BuildContext context) {
+    // Parsing tanggal aman
+    DateTime? lastActive;
+    if (user.lastLogin != null && user.lastLogin!.isNotEmpty) {
+      try {
+        lastActive = DateTime.parse(user.lastLogin!);
+      } catch (_) {}
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -360,12 +343,14 @@ class _UserManagementPageState extends State<UserManagementPage>
               radius: 24,
               backgroundColor: const Color(0xFF2ECC71),
               child: Text(
-                user.name
-                    .split(' ')
-                    .map((e) => e[0])
-                    .take(2)
-                    .join()
-                    .toUpperCase(),
+                user.fullName.isNotEmpty
+                    ? user.fullName
+                        .split(' ')
+                        .map((e) => e.isNotEmpty ? e[0] : '')
+                        .take(2)
+                        .join()
+                        .toUpperCase()
+                    : 'U',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -379,7 +364,7 @@ class _UserManagementPageState extends State<UserManagementPage>
                 width: 14,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: user.isActive
+                  color: (user.isActive ?? false)
                       ? const Color(0xFF2ECC71)
                       : const Color(0xFF6B7280),
                   shape: BoxShape.circle,
@@ -390,7 +375,7 @@ class _UserManagementPageState extends State<UserManagementPage>
           ],
         ),
         title: Text(
-          user.name,
+          user.fullName,
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
@@ -403,31 +388,26 @@ class _UserManagementPageState extends State<UserManagementPage>
             const SizedBox(height: 4),
             Text(
               user.email,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 8),
             Row(
               children: [
                 _buildRoleBadge(user.role),
                 const SizedBox(width: 8),
-                // Hapus location
               ],
             ),
             const SizedBox(height: 8),
             Text(
-              'Last active: ${_formatLastActive(user.lastActive)}',
-              style: const TextStyle(
-                color: Colors.white38,
-                fontSize: 12,
-              ),
+              lastActive != null
+                  ? 'Last active: ${_formatLastActive(lastActive)}'
+                  : 'Last active: -',
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
             ),
           ],
         ),
         trailing: PopupMenuButton<String>(
-          onSelected: (value) => _handleUserAction(value, user),
+          onSelected: (value) => _handleUserAction(value, user, context),
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'view',
@@ -439,29 +419,28 @@ class _UserManagementPageState extends State<UserManagementPage>
                 ],
               ),
             ),
-            // Hapus edit & delete
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRoleBadge(UserRole role) {
+  Widget _buildRoleBadge(String role) {
     Color backgroundColor;
     Color textColor;
-    String text;
+    String text = role;
 
-    switch (role) {
-      case UserRole.admin:
-        backgroundColor = const Color(0xFF3B82F6);
-        textColor = Colors.white;
-        text = 'Admin';
-        break;
-      case UserRole.petani:
-        backgroundColor = const Color(0xFF10B981);
-        textColor = Colors.white;
-        text = 'Petani';
-        break;
+    // Normalisasi string role untuk pengecekan
+    final roleLower = role.toLowerCase();
+
+    if (roleLower == 'admin' || roleLower == 'superadmin') {
+      backgroundColor = const Color(0xFF3B82F6);
+      textColor = Colors.white;
+      text = 'Admin';
+    } else {
+      backgroundColor = const Color(0xFF10B981);
+      textColor = Colors.white;
+      text = 'Petani';
     }
 
     return Container(
@@ -494,12 +473,7 @@ class _UserManagementPageState extends State<UserManagementPage>
     }
   }
 
-  void _refreshUsers() {
-    _fetchUsersFromBackend();
-    HapticFeedback.lightImpact();
-  }
-
-  void _showMoreOptions() {
+  void _showMoreOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -513,12 +487,19 @@ class _UserManagementPageState extends State<UserManagementPage>
             ListTile(
               leading: const Icon(Icons.admin_panel_settings_rounded),
               title: const Text('Add New Admin'),
-              onTap: _showHelp,
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Fitur tambah admin akan segera hadir')),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.person_add_alt_1_rounded),
               title: const Text('Add New Farmer'),
               onTap: () {
+                Navigator.pop(context);
                 Navigator.pushNamed(context, '/register');
               },
             ),
@@ -528,100 +509,58 @@ class _UserManagementPageState extends State<UserManagementPage>
     );
   }
 
-  void _handleUserAction(String action, User user) {
+  void _handleUserAction(String action, UserModel user, BuildContext context) {
     switch (action) {
       case 'view':
-        _showUserDetails(user);
+        _showUserDetails(user, context);
         break;
-      // Hapus edit & delete
     }
   }
 
-  void _showUserDetails(User user) {
+  void _showUserDetails(UserModel user, BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => UserDetailsDialog(user: user),
     );
   }
-
-  void _exportUsers() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Export feature coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showUserSettings() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('User settings coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
-  void _showHelp() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Help documentation coming soon'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 }
 
-// User Model
-class User {
-  final int id;
-  final String name;
-  final String email;
-  final UserRole role;
-  final String phone;
-  bool isActive;
-  final DateTime lastActive;
-  final DateTime joinDate;
-  final String avatar;
-
-  User({
-    required this.id,
-    required this.name,
-    required this.email,
-    required this.role,
-    required this.phone,
-    required this.isActive,
-    required this.lastActive,
-    required this.joinDate,
-    required this.avatar,
-  });
-}
-
-enum UserRole { admin, petani }
-
-// User Details Dialog
+// User Details Dialog yang disesuaikan dengan UserModel
 class UserDetailsDialog extends StatelessWidget {
-  final User user;
+  final UserModel user;
 
   const UserDetailsDialog({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
+    DateTime? joinDate;
+    DateTime? lastActive;
+
+    try {
+      if (user.createdAt != null) joinDate = DateTime.parse(user.createdAt!);
+      if (user.lastLogin != null) lastActive = DateTime.parse(user.lastLogin!);
+    } catch (_) {}
+
     return AlertDialog(
-      title: Text(user.name),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildDetailRow('Email', user.email),
-          _buildDetailRow('Phone', user.phone),
-          _buildDetailRow(
-              'Role', user.role == UserRole.admin ? 'Admin' : 'Petani'),
-          // Hapus location
-          _buildDetailRow('Status', user.isActive ? 'Active' : 'Inactive'),
-          _buildDetailRow('Join Date', _formatDate(user.joinDate)),
-          _buildDetailRow('Last Active', _formatLastActive(user.lastActive)),
-        ],
+      title: Text(user.fullName),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow('UID', user.uid ?? '-'),
+            _buildDetailRow('Username', user.username),
+            _buildDetailRow('Email', user.email),
+            _buildDetailRow('Phone', user.phoneNumber ?? '-'),
+            _buildDetailRow('Role', user.role),
+            _buildDetailRow(
+                'Status', (user.isActive ?? false) ? 'Active' : 'Inactive'),
+            if (joinDate != null)
+              _buildDetailRow('Join Date', _formatDate(joinDate)),
+            if (lastActive != null)
+              _buildDetailRow('Last Active', _formatLastActive(lastActive)),
+          ],
+        ),
       ),
       actions: [
         TextButton(
