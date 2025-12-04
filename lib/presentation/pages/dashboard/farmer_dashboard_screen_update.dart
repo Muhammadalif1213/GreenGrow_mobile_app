@@ -236,8 +236,8 @@ class _FarmerDashboardScreenUpdateState
                                       _buildConfigRow(
                                           'Mode Otomatis',
                                           data.config.automation
-                                              ? 'AKTIF'
-                                              : 'MATI'),
+                                              ? 'ON'
+                                              : 'OFF'),
                                       _buildConfigRow('Status Blower',
                                           data.config.blower ? 'ON' : 'OFF'),
                                       _buildConfigRow('Batas Suhu',
@@ -334,15 +334,39 @@ class _FarmerDashboardScreenUpdateState
   }
 
   Widget _buildConfigRow(String label, String value) {
+    // Tentukan warna berdasarkan value
+    Color containerColor;
+    if (value.contains('ON')) {
+      containerColor = Colors.green.withOpacity(0.8); // Hijau untuk ON
+    } else if (value.contains('OFF')) {
+      containerColor = Colors.grey.withOpacity(0.8); // Abu untuk OFF
+    } else {
+      containerColor = Colors.white
+          .withOpacity(0.2); // Warna netral untuk nilai lain (misalnya suhu)
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(color: Colors.white70)),
-          Text(value,
+          // Bungkus value dalam Container dengan warna dinamis
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: containerColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: Text(
+              value,
               style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w600)),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
       ),
     );

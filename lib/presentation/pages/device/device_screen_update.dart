@@ -179,59 +179,79 @@ class DeviceScreenUpdate extends StatelessWidget {
                       //   ),
                       // ),
                       const SizedBox(height: 16),
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Status Perangkat',
+                          Text(
+                            'Status Sistem',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              isAutomationEnabled
-                                  ? 'Sistem Aktif'
-                                  : 'Manual Mode',
-                              style: const TextStyle(
-                                color: Color.fromARGB(255, 255, 255, 255),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
+                          // Container(
+                          //   padding: const EdgeInsets.symmetric(
+                          //       horizontal: 12, vertical: 6),
+                          //   decoration: BoxDecoration(
+                          //     color: Colors.white.withOpacity(0.2),
+                          //     borderRadius: BorderRadius.circular(12),
+                          //   ),
+                          //   child: Text(
+                          //     isAutomationEnabled
+                          //         ? 'Sistem Aktif'
+                          //         : 'Manual Mode',
+                          //     style: const TextStyle(
+                          //       color: Color.fromARGB(255, 255, 255, 255),
+                          //       fontSize: 12,
+                          //       fontWeight: FontWeight.w500,
+                          //     ),
+                          //   ),
+                          // ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // GlassCard status perangkat
-                      GlassCard(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // === PERUBAHAN DI SINI ===
-                              _buildStatusRow(
-                                  'Automation', isAutomationEnabled),
-                              const SizedBox(height: 12),
-                              _buildStatusRow('Blower', blowerOn),
-                              const SizedBox(height: 12),
-                              // Baris baru untuk MaxTemp
-                              _buildStatusRow('Batas Suhu', maxTemp,
-                                  unit: '°C'),
-                              // ========================
-                            ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            isAutomationEnabled
+                                ? 'Sistem Otomatis'
+                                : 'Sistem Manual',
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 255, 255, 255),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
+                      // // GlassCard status perangkat
+                      // GlassCard(
+                      //   child: Padding(
+                      //     padding: const EdgeInsets.all(16.0),
+                      //     child: Column(
+                      //       crossAxisAlignment: CrossAxisAlignment.start,
+                      //       children: [
+                      //         // === PERUBAHAN DI SINI ===
+                      //         _buildStatusRow(
+                      //             'Automation', isAutomationEnabled),
+                      //         const SizedBox(height: 12),
+                      //         _buildStatusRow('Blower', blowerOn),
+                      //         const SizedBox(height: 12),
+                      //         // Baris baru untuk MaxTemp
+                      //         _buildStatusRow('Batas Suhu', maxTemp,
+                      //             unit: '°C'),
+                      //         // ========================
+                      //       ],
+                      //     ),
+                      //   ),
+                      // ),
                       const SizedBox(height: 16),
                       const Text(
                         'Kontrol Perangkat',
@@ -377,7 +397,7 @@ class DeviceScreenUpdate extends StatelessWidget {
     return Container(); // Placeholder
   }
 
-  // Widget _buildDeviceCard (Sudah benar)
+  // Widget _buildDeviceCard (Dimodifikasi)
   Widget _buildDeviceCard({
     required BuildContext context,
     required String title,
@@ -386,78 +406,83 @@ class DeviceScreenUpdate extends StatelessWidget {
     required bool isOn,
     required bool isAutomationEnabled,
     required Function(bool) onChanged,
-    bool isManualControl = true, // <-- Tambahkan parameter ini
+    bool isManualControl = true, // <-- Tetap ada
   }) {
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // ... (Icon Anda)
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: isOn
-                        ? const LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Color(0xFF509168), // sea-green
-                              Color(0xFF2F7E68), // viridian
-                            ],
-                          )
-                        : null,
-                    color: isOn ? null : Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                Switch(
-                  value: isOn,
-                  // === GANTI LOGIKA onChanged ===
-                  onChanged: (newValue) {
-                    // Jika ini adalah kontrol manual (spt Blower)
-                    // DAN automation masih menyala
-                    if (isManualControl && isAutomationEnabled) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.warning, color: Colors.white),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                    'Matikan mode automation untuk kontrol manual $title.'),
-                              ),
-                            ],
+            // BUNGKUS SELURUH ROW DENGAN INKWELL AGAR SEMUA AREA BISA DIKLIK
+            InkWell(
+              onTap: () {
+                // Logika sama seperti sebelumnya
+                if (isManualControl && isAutomationEnabled) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                                'Matikan mode automation untuk kontrol manual $title.'),
                           ),
-                          backgroundColor: const Color(0xFFE57373),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFFE57373),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                  return; // Jangan toggle
+                }
+                // Toggle nilai dan panggil onChanged
+                onChanged(!isOn); // Toggle dari isOn ke !isOn
+              },
+              borderRadius: BorderRadius.circular(12), // Agar efek ripple bulat
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // UBAH CONTAINER ICON: WARNA DINAMIS (ABU UNTUK OFF, HIJAU UNTUK ON)
+                  Container(
+                    padding: const EdgeInsets.only(
+                        top: 50, bottom: 50, left: 70, right: 70),
+                    decoration: BoxDecoration(
+                      color: isOn
+                          ? Colors.green.withOpacity(0.8)
+                          : Colors.grey
+                              .withOpacity(0.8), // Dinamis: hijau ON, abu OFF
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          icon,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                        Text(
+                          isOn ? 'ON' : 'OFF',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
                           ),
                         ),
-                      );
-                      return; // Hentikan, jangan ubah switch
-                    }
-        
-                    // Jika lolos, panggil fungsi onChanged
-                    onChanged(newValue);
-                  },
-                  // =============================
-                  activeColor: const Color(0xFF4CAF50),
-                  inactiveThumbColor: Colors.grey,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ],
+                      ],
+                    ),
+                  ),
+                  // HAPUS CARD TERPISAH UNTUK "ON/OFF" - SEKARANG ICON + BACKGROUND SUDAH MENUNJUKKAN STATUS
+                  // (Opsional: Tambahkan teks status di sini jika ingin, tapi warna sudah cukup indikator)
+                  // Contoh: Text(isOn ? 'ON' : 'OFF', style: TextStyle(color: Colors.white)),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Text(
