@@ -18,6 +18,7 @@ class UserModel {
   final String? createdAt;
   final String? updatedAt;
   final String? fcmToken;
+  final bool isDeleted;
 
   UserModel({
     required this.id,
@@ -37,6 +38,7 @@ class UserModel {
     this.createdAt,
     this.updatedAt,
     this.fcmToken,
+    this.isDeleted = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +67,7 @@ class UserModel {
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
       fcmToken: json['fcm_token']?.toString(),
+      isDeleted: json['isDeleted'] == true || json['is_deleted'] == true,
     );
   }
 

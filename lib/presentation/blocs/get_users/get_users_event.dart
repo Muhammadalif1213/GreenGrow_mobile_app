@@ -8,3 +8,8 @@ sealed class GetUsersEvent extends Equatable {
 }
 
 class FetchAllUsers extends GetUsersEvent {}
+
+class DeleteUser extends GetUsersEvent {
+  final String uid;
+  const DeleteUser(this.uid);
+}
