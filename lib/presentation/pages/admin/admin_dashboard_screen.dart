@@ -1,25 +1,27 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:greengrow_app/core/config/api_config.dart';
-import 'package:greengrow_app/data/repositories/device_control_repository.dart';
-import 'package:greengrow_app/presentation/blocs/device_control/device_control_bloc.dart';
-// 1. IMPORT DITAMBAHKAN:
-import 'package:greengrow_app/presentation/blocs/sensor/sensor_state.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:async';
+import 'package:fl_chart/fl_chart.dart'; // [NEW] Untuk Grafik
+import 'package:intl/intl.dart'; // [NEW] Untuk Format Tanggal
 
-import '../../../data/repositories/sensor_repository.dart';
-import '../../blocs/sensor/sensor_bloc.dart';
-import '../../blocs/sensor/sensor_event.dart';
+// --- IMPORTS APLIKASI ANDA ---
+// Sesuaikan path ini dengan struktur folder project Anda jika berbeda
+import 'package:greengrow_app/core/config/api_config.dart';
+import 'package:greengrow_app/data/models/activity_log_model.dart';
+import 'package:greengrow_app/data/models/sensor_log_model.dart'; // [NEW] Pastikan model ini ada
+import 'package:greengrow_app/data/repositories/activity_repository.dart';
+import 'package:greengrow_app/data/repositories/device_control_repository.dart';
+import 'package:greengrow_app/data/repositories/sensor_repository.dart';
+import 'package:greengrow_app/presentation/blocs/device_control/device_control_bloc.dart';
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_bloc.dart';
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_event.dart';
+import 'package:greengrow_app/presentation/blocs/sensor/sensor_state.dart';
+
+// Import Halaman Lain
 import 'admin_control_screen.dart';
 import 'admin_settings_screen.dart';
-import 'package:provider/provider.dart';
-import '../../../core/providers/auth_provider.dart';
-import '../../../data/models/activity_log_model.dart';
-import '../../../data/repositories/activity_repository.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -32,22 +34,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _selectedIndex = 0;
 
   late final SensorBloc _sensorBloc;
+
+  // [NEW] Variable untuk menampung future data history
+  late Future<List<SensorLogModel>> _historyFuture;
+
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
 
-    _sensorBloc =
-        SensorBloc(SensorRepository(Dio(), const FlutterSecureStorage()));
+    // Inisialisasi Repository
+    final sensorRepository =
+        SensorRepository(Dio(), const FlutterSecureStorage());
 
-    _fetchData();
+    // 1. Setup Bloc untuk Realtime Data
+    _sensorBloc = SensorBloc(sensorRepository);
+    _fetchRealtimeData();
 
-    _timer = Timer.periodic(const Duration(seconds: 5), (_) => _fetchData());
+    // 2. Setup Timer untuk Realtime Data (setiap 5 detik)
+    _timer =
+        Timer.periodic(const Duration(seconds: 5), (_) => _fetchRealtimeData());
+
+    // 3. [NEW] Load Data History (Hanya sekali saat init, tidak perlu timer 5 detik)
+    _historyFuture = sensorRepository.getSensorLogs();
   }
 
-  void _fetchData() {
+  void _fetchRealtimeData() {
+    if (!mounted) return;
     _sensorBloc.add(FetchLatestSensorData());
+  }
+
+  // Fungsi untuk refresh manual (Pull to Refresh)
+  Future<void> _handleRefresh() async {
+    _fetchRealtimeData(); // Refresh realtime
+    setState(() {
+      // Refresh grafik history
+      _historyFuture =
+          SensorRepository(Dio(), const FlutterSecureStorage()).getSensorLogs();
+    });
+    // Beri sedikit delay agar UI terasa refresh
+    await Future.delayed(const Duration(seconds: 1));
   }
 
   @override
@@ -74,7 +101,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1419),
+      backgroundColor: const Color(0xFF0F1419), // Dark Background
       body: SafeArea(child: _buildTabContent(_selectedIndex)),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -96,6 +123,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildTabContent(int index) {
+    // Saat ini hanya Dashboard Tab yang kita fokuskan
     return _buildDashboardTab();
   }
 
@@ -103,11 +131,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return BlocProvider.value(
       value: _sensorBloc,
       child: RefreshIndicator(
-        onRefresh: () async {
-          _fetchData();
-          // Anda juga bisa refresh BLoC kedua saat pull-to-refresh
-          // context.read<DeviceControlBloc>().add(DeviceControlFetchStatus());
-        },
+        onRefresh:
+            _handleRefresh, // Menggunakan fungsi refresh yang sudah diupdate
+        color: const Color(0xFF2ECC71),
+        backgroundColor: const Color(0xFF1A1F2E),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
@@ -116,10 +143,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             children: [
               _buildHeader(),
               const SizedBox(height: 20),
+
+              // 1. Realtime Status Cards
               _buildStatusCards(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 25),
+
+              // 2. [NEW] History Chart Section
+              const Text('Weekly History (7 Days)',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+              const SizedBox(height: 15),
+              _buildHistoryChartSection(),
+
+              const SizedBox(height: 25),
+
+              // 3. Quick Stats (Control Status)
               _buildQuickStats(),
               const SizedBox(height: 20),
+
+              // 4. Recent Activity (Placeholder jika Anda ingin mengaktifkannya kembali)
               // _buildRecentActivity(),
             ],
           ),
@@ -144,11 +188,206 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  // --- WIDGET CHART BARU ---
+  Widget _buildHistoryChartSection() {
+    return FutureBuilder<List<SensorLogModel>>(
+      future: _historyFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 250,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1F2E),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
+            ),
+            child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF2ECC71))),
+          );
+        } else if (snapshot.hasError) {
+          return Container(
+            height: 100,
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1F2E),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.red.withOpacity(0.3)),
+            ),
+            child: Center(
+              child: Text('Failed to load history.\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red)),
+            ),
+          );
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Container(
+            height: 100,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1F2E),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Center(
+                child: Text('No history data available',
+                    style: TextStyle(color: Colors.grey))),
+          );
+        }
+
+        final logs = snapshot.data!;
+
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1F2E),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5))
+            ],
+          ),
+          child: LineChart(
+            LineChartData(
+              gridData: FlGridData(
+                show: true,
+                drawVerticalLine: false,
+                getDrawingHorizontalLine: (value) => FlLine(
+                  color: Colors.white.withOpacity(0.05),
+                  strokeWidth: 1,
+                ),
+              ),
+              titlesData: FlTitlesData(
+                show: true,
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    reservedSize: 30,
+                    interval: 1,
+                    getTitlesWidget: (value, meta) {
+                      final index = value.toInt();
+                      if (index >= 0 && index < logs.length) {
+                        try {
+                          // docId format: "2025-12-12"
+                          final date = DateTime.parse(logs[index].docId);
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Text(
+                              DateFormat('dd/MM').format(date),
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.5),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          );
+                        } catch (e) {
+                          return const SizedBox.shrink();
+                        }
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true,
+                    interval: 20, // Tampilkan label setiap kelipatan 20
+                    reservedSize: 35,
+                    getTitlesWidget: (value, meta) {
+                      return Text(
+                        value.toInt().toString(),
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 10,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              borderData: FlBorderData(show: false),
+              minX: 0,
+              maxX: (logs.length - 1).toDouble(), // Sesuai jumlah data
+              minY: 0,
+              maxY: 100, // Humidity max 100, Temp biasanya dibawah 100
+              lineBarsData: [
+                // 1. Humidity Line (Biru)
+                LineChartBarData(
+                  spots: logs.asMap().entries.map((e) {
+                    return FlSpot(e.key.toDouble(), e.value.humidity);
+                  }).toList(),
+                  isCurved: true,
+                  color: const Color(0xFF3498DB),
+                  barWidth: 3,
+                  isStrokeCapRound: true,
+                  dotData: const FlDotData(show: false),
+                  belowBarData: BarAreaData(
+                    show: true,
+                    color: const Color(0xFF3498DB).withOpacity(0.1),
+                  ),
+                ),
+                // 2. Temperature Line (Hijau)
+                LineChartBarData(
+                  spots: logs.asMap().entries.map((e) {
+                    return FlSpot(e.key.toDouble(), e.value.temp);
+                  }).toList(),
+                  isCurved: true,
+                  color: const Color(0xFF2ECC71),
+                  barWidth: 3,
+                  isStrokeCapRound: true,
+                  dotData: const FlDotData(show: true),
+                  belowBarData: BarAreaData(show: false),
+                ),
+              ],
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  // Ubah baris ini:
+                  getTooltipColor: (touchedSpot) =>
+                      const Color(0xFF0F1419).withOpacity(0.9),
+
+                  getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                    return touchedBarSpots.map((barSpot) {
+                      final val = barSpot.y;
+                      if (barSpot.barIndex == 0) {
+                        return LineTooltipItem(
+                          'Kelembaban: $val%',
+                          const TextStyle(
+                              color: Color(0xFF3498DB),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                        );
+                      } else {
+                        return LineTooltipItem(
+                          'Suhu: $val°C',
+                          const TextStyle(
+                              color: Color(0xFF2ECC71),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12),
+                        );
+                      }
+                    }).toList();
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // --- REALTIME STATUS CARDS (BLOC) ---
   Widget _buildStatusCards() {
     return BlocBuilder<SensorBloc, SensorState>(
       builder: (context, state) {
         if (state is SensorLoading || state is SensorInitial) {
-          // Tampilkan loading skeleton
           return Row(
             children: [
               Expanded(
@@ -203,7 +442,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-              color: color.withOpacity(0.2),
+              color: color.withOpacity(0.1), // Sedikit dikurangi opacity shadow
               blurRadius: 15,
               offset: const Offset(0, 5))
         ],
@@ -235,10 +474,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  // Widget skeleton untuk loading
   Widget _buildSensorCardSkeleton({required Color color}) {
     return Container(
-      height: 160, // Sesuaikan tinggi dengan card asli
+      height: 160,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF1A1F2E),
@@ -268,17 +506,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  // --- QUICK STATS (BLOC CONTROL) ---
   Widget _buildQuickStats() {
     return BlocProvider(
       create: (_) => DeviceControlBloc(
         DeviceControlRepository(Dio(), const FlutterSecureStorage()),
-      )
-        // 2. PERBAIKAN: Panggil event saat BLoC dibuat
-        ..add(DeviceControlFetchStatus()),
+      )..add(DeviceControlFetchStatus()),
       child: BlocBuilder<DeviceControlBloc, DeviceControlState>(
         builder: (context, state) {
           if (state is DeviceControlLoading || state is DeviceControlInitial) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF2ECC71)));
           } else if (state is DeviceControlStatus) {
             final isBlowerOn = state.blowerOn;
             final isAutomationOn = state.isAutomationEnabled;
@@ -352,51 +590,5 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 borderRadius: BorderRadius.circular(4))),
       ],
     );
-  }
-
-  // ... (Sisa kode activity Anda)
-  Widget _buildActivityItem(ActivityLog activity) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: Row(
-        children: [
-          Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                  color: const Color(0xFF2ECC71).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10)),
-              child:
-                  const Icon(Icons.event, color: Color(0xFF2ECC71), size: 20)),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(activity.activityType,
-                    style: const TextStyle(color: Colors.white, fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(activity.description,
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.7), fontSize: 12)),
-                const SizedBox(height: 4),
-                Text(_formatActivityTime(activity.createdAt),
-                    style: TextStyle(
-                        color: Colors.white.withOpacity(0.5), fontSize: 12)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatActivityTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} minutes ago';
-    if (diff.inHours < 24) return '${diff.inHours} hours ago';
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 }

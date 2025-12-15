@@ -9,6 +9,7 @@ class SensorBloc extends Bloc<SensorEvent, SensorState> {
   SensorBloc(this._sensorRepository) : super(SensorInitial()) {
     // Daftarkan event handler
     on<FetchLatestSensorData>(_onFetchLatestSensorData);
+    on<FetchSensorHistory>(_onFetchSensorHistory);
   }
 
   Future<void> _onFetchLatestSensorData(
@@ -22,6 +23,19 @@ class SensorBloc extends Bloc<SensorEvent, SensorState> {
 
       // Kirim state sukses dengan data yang baru
       emit(SensorLoaded(data));
+    } catch (e) {
+      emit(SensorError(e.toString()));
+    }
+  }
+
+  Future<void> _onFetchSensorHistory(
+    FetchSensorHistory event,
+    Emitter<SensorState> emit,
+  ) async {
+    emit(SensorLoading());
+    try {
+      final logs = await _sensorRepository.getSensorLogs();
+      emit(SensorHistoryLoaded(logs));
     } catch (e) {
       emit(SensorError(e.toString()));
     }

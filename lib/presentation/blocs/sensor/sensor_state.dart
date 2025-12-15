@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../data/models/sensor_data_model.dart';
+import '../../../data/models/sensor_log_model.dart';
 
 abstract class SensorState extends Equatable {
   @override
@@ -20,4 +21,9 @@ class SensorLoaded extends SensorState {
 class SensorError extends SensorState {
   final String message;
   SensorError(this.message);
+}
+
+class SensorHistoryLoaded extends SensorState {
+  final List<SensorLogModel> logs;
+  SensorHistoryLoaded(this.logs);
 }

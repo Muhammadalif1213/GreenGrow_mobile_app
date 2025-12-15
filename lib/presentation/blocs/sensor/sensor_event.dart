@@ -6,3 +6,5 @@ abstract class SensorEvent extends Equatable {
 }
 
 class FetchLatestSensorData extends SensorEvent {}
+
+class FetchSensorHistory extends SensorEvent {}

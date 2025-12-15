@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:greengrow_app/core/config/api_config.dart';
 import '../models/sensor_data_model.dart';
+import '../models/sensor_log_model.dart';
 
 class SensorRepository {
   final Dio dio;
@@ -88,6 +89,39 @@ class SensorRepository {
       print('== GAGAL PARSING DATA AMBANG BATAS SENSOR (Error) ==');
       print('Error: $e');
       throw Exception('Gagal mem-parsing data ambang batas sensor.');
+    }
+  }
+
+  Future<List<SensorLogModel>> getSensorLogs() async {
+    try {
+      // Ambil token dari storage
+      final token =
+          await storage?.read(key: 'auth_token'); // Sesuaikan key token Anda
+
+      final response = await dio.get(
+        '${ApiConfig.baseUrl}/logs/sensor-logs', // Pastikan base URL benar
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token', // Kirim Token Admin
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data['status'] == 'success') {
+        final List<dynamic> data = response.data['data'];
+        // Mapping data JSON ke List<Model>
+        // Kita reverse agar urutan tanggal dari kiri (lama) ke kanan (baru) di grafik
+        return data
+            .map((json) => SensorLogModel.fromJson(json))
+            .toList()
+            .reversed
+            .toList();
+      } else {
+        throw Exception('Failed to load logs');
+      }
+    } catch (e) {
+      throw Exception(e.toString());
     }
   }
 }
