@@ -20,6 +20,7 @@ import 'package:greengrow_app/presentation/blocs/sensor/sensor_event.dart';
 import 'package:greengrow_app/presentation/blocs/sensor/sensor_state.dart';
 
 // Import Halaman Lain
+import '../../widgets/weekly_history_error.dart';
 import 'admin_control_screen.dart';
 import 'admin_settings_screen.dart';
 
@@ -193,9 +194,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return FutureBuilder<List<SensorLogModel>>(
       future: _historyFuture,
       builder: (context, snapshot) {
+        // STATE: LOADING
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Container(
-            height: 250,
+            height: 300,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(20),
@@ -204,38 +206,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: const Center(
                 child: CircularProgressIndicator(color: Color(0xFF2ECC71))),
           );
-        } else if (snapshot.hasError) {
-          return Container(
-            height: 100,
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2E),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.red.withOpacity(0.3)),
-            ),
-            child: Center(
-              child: Text('Failed to load history.\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red)),
-            ),
+        }
+        // STATE: ERROR (GANTI BAGIAN INI)
+        else if (snapshot.hasError) {
+          return WeeklyHistoryError(
+            errorMessage: snapshot.error.toString(),
+            onRetry: () {
+              setState(() {
+                // Refresh logic: Panggil ulang repository
+                _historyFuture =
+                    SensorRepository(Dio(), const FlutterSecureStorage())
+                        .getSensorLogs();
+              });
+            },
           );
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+        }
+        // STATE: EMPTY DATA
+        else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          // Kita gunakan UI Error juga tapi pesannya beda untuk Empty State
           return Container(
-            height: 100,
+            height: 300,
             width: double.infinity,
             decoration: BoxDecoration(
               color: const Color(0xFF1A1F2E),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.1)),
             ),
-            child: const Center(
-                child: Text('No history data available',
-                    style: TextStyle(color: Colors.grey))),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.query_stats,
+                    size: 64, color: Colors.white.withOpacity(0.2)),
+                const SizedBox(height: 16),
+                Text("Belum ada data history",
+                    style: TextStyle(color: Colors.white.withOpacity(0.5))),
+              ],
+            ),
           );
         }
 
         final logs = snapshot.data!;
 
+        // STATE: SUCCESS (Code Chart Lama Anda)
         return Container(
           height: 300,
           padding: const EdgeInsets.fromLTRB(10, 20, 20, 10),
@@ -251,6 +263,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
           child: LineChart(
+            // ... (kode konfigurasi chart Anda tetap sama seperti sebelumnya) ...
             LineChartData(
               gridData: FlGridData(
                 show: true,
@@ -275,7 +288,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       final index = value.toInt();
                       if (index >= 0 && index < logs.length) {
                         try {
-                          // docId format: "2025-12-12"
                           final date = DateTime.parse(logs[index].docId);
                           return Padding(
                             padding: const EdgeInsets.only(top: 8.0),
@@ -298,7 +310,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: 20, // Tampilkan label setiap kelipatan 20
+                    interval: 20,
                     reservedSize: 35,
                     getTitlesWidget: (value, meta) {
                       return Text(
@@ -314,11 +326,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               borderData: FlBorderData(show: false),
               minX: 0,
-              maxX: (logs.length - 1).toDouble(), // Sesuai jumlah data
+              maxX: (logs.length - 1).toDouble(),
               minY: 0,
-              maxY: 100, // Humidity max 100, Temp biasanya dibawah 100
+              maxY: 100,
               lineBarsData: [
-                // 1. Humidity Line (Biru)
                 LineChartBarData(
                   spots: logs.asMap().entries.map((e) {
                     return FlSpot(e.key.toDouble(), e.value.humidity);
@@ -333,7 +344,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     color: const Color(0xFF3498DB).withOpacity(0.1),
                   ),
                 ),
-                // 2. Temperature Line (Hijau)
                 LineChartBarData(
                   spots: logs.asMap().entries.map((e) {
                     return FlSpot(e.key.toDouble(), e.value.temp);
@@ -348,10 +358,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ],
               lineTouchData: LineTouchData(
                 touchTooltipData: LineTouchTooltipData(
-                  // Ubah baris ini:
                   getTooltipColor: (touchedSpot) =>
                       const Color(0xFF0F1419).withOpacity(0.9),
-
                   getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
                     return touchedBarSpots.map((barSpot) {
                       final val = barSpot.y;

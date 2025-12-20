@@ -34,7 +34,7 @@ class AdminSettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1419),
       appBar: AppBar(
-        title: const Text('System Settings'),
+        title: const Text('System Settings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1A1F2E),
       ),
       body: SingleChildScrollView(

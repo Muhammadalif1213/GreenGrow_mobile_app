@@ -185,10 +185,10 @@ class _AdminControlScreenState extends State<AdminControlScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1F2E),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.chevron_left, color: Colors.white),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         title: const Text(
           'Pengaturan Ambang Batas',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
